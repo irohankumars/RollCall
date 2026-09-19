@@ -1,56 +1,41 @@
-# Welcome to your Expo app 👋
+# RollCall Builds 1–4
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo Router foundation, reusable design system, adaptive application shell, and the Build 3 authentication client for RollCall. Product dashboards, role interfaces, attendance, camera, reports, notifications, and settings remain intentionally out of scope.
 
-## Get started
+Build 4 adds the lecturer-only operational flow: assigned classes, class details, roster and student attendance context, attendance setup and method selection, functional manual marking and review, submission, session history, and permitted correction. Face attendance remains an explicit placeholder; no camera or biometric processing is included.
 
-1. Install dependencies
+## Included
 
-   ```bash
-   npm install
-   ```
+- Centralized brand and semantic color tokens
+- Light and dark themes with system preference support
+- Typography, spacing, sizing, radius, elevation, icon, motion, and breakpoint tokens
+- Responsive and safe-area utilities
+- Buttons, inputs, information, navigation, feedback, permission, privacy, and global-state primitives
+- Attendance status and recognition visual primitives
+- One internal design-system playground at `/design-system-preview`
+- Adaptive shell with phone bottom navigation, tablet rail, and large-screen sidebar
+- Configuration-driven role and permission navigation filtering
+- Compact headers and compact, standard, detail, and full-width page containers
+- Keyboard-aware scrolling and safe-area-aware fixed action regions
+- Global toast, alert, confirmation, sheet, and loading overlay host
+- Internal shell preview at `/shell-preview`
+- Protected-route gate and modal-route foundation
+- Login, secure token persistence, session restoration, protected routing, and logout
+- Authenticated role and college tenant context from the backend
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Copy `.env.example` to `.env` and set `EXPO_PUBLIC_API_URL` to the backend origin. A physical device must use the development computer's LAN address instead of `127.0.0.1`. Use Expo Go first for iOS and Android development, or `npm run web` for the browser client.
 
-### Other setup steps
+## Verify
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx tsc --noEmit
+npm run lint
+npx expo export --platform web
+```

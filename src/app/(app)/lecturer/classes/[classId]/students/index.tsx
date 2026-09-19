@@ -1,0 +1,13 @@
+import { useDeferredValue, useState } from 'react';
+import { FlatList, TextInput } from 'react-native';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useAuth } from '@/auth/auth-provider';
+import { AttendanceStatusIndicator } from '@/design-system/components/attendance';
+import { Avatar, ListItem } from '@/design-system/components/core';
+import { StateView } from '@/design-system/components/states';
+import { radii, sizing, spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme } from '@/design-system/theme-provider';
+import { LecturerShell } from '@/lecturer/components';
+import { lecturerClient } from '@/lecturer/lecturer-client';
+import { useResource } from '@/lecturer/use-resource';
+export default function Roster(){const {colors}=useRollCallTheme();const {classId}=useLocalSearchParams<{classId:string}>();const {session}=useAuth();const token=session?.token??'';const [query,setQuery]=useState('');const deferred=useDeferredValue(query);const resource=useResource(()=>lecturerClient.roster(token,classId),[token,classId]);const students=resource.data?.filter(x=>`${x.name} ${x.rollNumber}`.toLowerCase().includes(deferred.toLowerCase()))??[];return <LecturerShell activeKey="classes" title="Student roster" subtitle={`${resource.data?.length??0} enrolled`} back>{resource.loading||resource.error?<StateView state={resource.loading?'loading':resource.error?.code==='NETWORK_ERROR'?'offline':'error'} message={resource.error?.message} onRetry={resource.retry}/>:<FlatList data={students} keyExtractor={item=>item.id} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{padding:spacing.lg,gap:spacing.sm,maxWidth:840,width:'100%',alignSelf:'center'}} ListHeaderComponent={<TextInput accessibilityLabel="Search students" placeholder="Search name or roll number" placeholderTextColor={colors.textMuted} value={query} onChangeText={setQuery} style={[typography.body,{minHeight:sizing.inputHeight,marginBottom:spacing.md,borderRadius:radii.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.surface,paddingHorizontal:spacing.lg,color:colors.textPrimary}]}/>} ListEmptyComponent={<StateView state="empty" title={query?'No matching students':'No enrolled students'} message={query?'Try another name or roll number.':'The roster is empty.'}/>} renderItem={({item})=><ListItem title={item.name} detail={`${item.rollNumber} · ${item.attendancePercentage}% attendance`} leading={<Avatar name={item.name} size="small"/>} trailing={<AttendanceStatusIndicator status={item.attendanceStatus}/>} onPress={()=>router.push(`/lecturer/classes/${classId}/students/${item.id}` as Href)}/>}/>}</LecturerShell>}

@@ -1,0 +1,10 @@
+import React from 'react';
+import { Text, View } from 'react-native';
+import { Badge, Button, Card } from './core';
+import { spacing, typography } from '../tokens';
+import { useRollCallTheme } from '../theme-provider';
+
+export function NotificationBadge({ count }: { count: number }) { return <Badge label={count > 99 ? '99+ unread' : `${count} unread`} tone="error" />; }
+export function PermissionNotice({ title, message, denied = false, onAction }: { title: string; message: string; denied?: boolean; onAction?: () => void }) { const { colors } = useRollCallTheme(); return <Card><Badge label={denied ? 'Permission denied' : 'Permission required'} tone={denied ? 'error' : 'info'} /><Text style={[typography.heading, { color: colors.textPrimary }]}>{title}</Text><Text style={[typography.body, { color: colors.textSecondary }]}>{message}</Text>{onAction ? <Button label={denied ? 'Open settings' : 'Continue'} variant={denied ? 'secondary' : 'primary'} onPress={onAction} /> : null}</Card>; }
+export function PrivacyNotice({ title, children }: React.PropsWithChildren<{ title: string }>) { const { colors } = useRollCallTheme(); return <View style={{ gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.info, paddingLeft: spacing.lg }}><Text style={[typography.subheading, { color: colors.textPrimary }]}>{title}</Text><Text style={[typography.bodySmall, { color: colors.textSecondary }]}>{children}</Text></View>; }
+export function ConsentNotice({ title, message, onAccept, onDecline }: { title: string; message: string; onAccept?: () => void; onDecline?: () => void }) { const { colors } = useRollCallTheme(); return <Card><Text style={[typography.heading, { color: colors.textPrimary }]}>{title}</Text><Text style={[typography.body, { color: colors.textSecondary }]}>{message}</Text><View style={{ flexDirection: 'row', gap: spacing.sm }}><Button label="Decline" variant="secondary" onPress={onDecline} style={{ flex: 1 }} /><Button label="Accept" onPress={onAccept} style={{ flex: 1 }} /></View></Card>; }

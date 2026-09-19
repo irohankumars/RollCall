@@ -1,0 +1,13 @@
+import { Text, View } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { useAuth } from '@/auth/auth-provider';
+import { Statistic } from '@/design-system/components/core';
+import { StateView } from '@/design-system/components/states';
+import { spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme } from '@/design-system/theme-provider';
+import { PageContainer } from '@/shell/app-shell';
+import { ClassRow, LecturerShell, ResourceState, SectionHeading } from '@/lecturer/components';
+import { lecturerClient } from '@/lecturer/lecturer-client';
+import { useResource } from '@/lecturer/use-resource';
+
+export default function LecturerHome(){const {colors}=useRollCallTheme();const {session}=useAuth();const token=session?.token??'';const resource=useResource(()=>lecturerClient.overview(token),[token]);return <LecturerShell activeKey="today" title="Today" subtitle={session?.user.name}><PageContainer width="standard"><ResourceState loading={resource.loading} error={resource.error} retry={resource.retry}/>{resource.data?<><View style={{flexDirection:'row',gap:spacing.giant,flexWrap:'wrap'}}><Statistic value={String(resource.data.today.length)} label="Classes today"/><Statistic value={String(resource.data.requiringAttendance.length)} label="Attendance due"/><Statistic value={String(resource.data.recentSessions.length)} label="Recent sessions"/></View><View style={{gap:spacing.sm}}><SectionHeading title="Next classes" action="All classes" onAction={()=>router.push('/lecturer/classes' as Href)}/>{resource.data.upcoming.length?resource.data.upcoming.map(item=><ClassRow key={item.id} item={item}/>):<StateView state="empty" title="No upcoming classes" message="Your assigned classes will appear here."/>}</View>{resource.data.requiringAttendance.length?<View style={{gap:spacing.sm}}><SectionHeading title="Needs attention"/>{resource.data.requiringAttendance.map(item=><ClassRow key={item.id} item={item}/>)}</View>:null}<View style={{gap:spacing.sm}}><SectionHeading title="Recent attendance" action="History" onAction={()=>router.push('/lecturer/history' as Href)}/>{resource.data.recentSessions.map(item=><View key={item.id} style={{paddingVertical:spacing.md,borderBottomWidth:1,borderBottomColor:colors.borderSubtle}}><Text style={[typography.subheading,{color:colors.textPrimary}]}>{item.subjectCode} · {item.batchName}</Text><Text style={[typography.bodySmall,{color:colors.textSecondary}]}>{new Date(item.scheduledAt).toLocaleString()} · {item.present}/{item.total} present</Text></View>)}</View></>:null}</PageContainer></LecturerShell>}

@@ -1,0 +1,12 @@
+import { Text, View } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { useAuth } from '@/auth/auth-provider';
+import { Badge, Button } from '@/design-system/components/core';
+import { StateView } from '@/design-system/components/states';
+import { spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme } from '@/design-system/theme-provider';
+import { PageContainer } from '@/shell/app-shell';
+import { LecturerShell, ResourceState } from '@/lecturer/components';
+import { lecturerClient } from '@/lecturer/lecturer-client';
+import { useResource } from '@/lecturer/use-resource';
+export default function History(){const {colors}=useRollCallTheme();const {session}=useAuth();const token=session?.token??'';const resource=useResource(()=>lecturerClient.history(token),[token]);return <LecturerShell activeKey="history" title="Attendance history" subtitle="Sessions you conducted"><PageContainer width="standard"><ResourceState loading={resource.loading} error={resource.error} retry={resource.retry}/>{resource.data?(resource.data.length?<View style={{gap:spacing.sm}}>{resource.data.map(item=><View key={item.id} style={{paddingVertical:spacing.lg,borderBottomWidth:1,borderBottomColor:colors.borderSubtle,gap:spacing.sm}}><View style={{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',gap:spacing.md}}><View style={{flex:1}}><Text style={[typography.subheading,{color:colors.textPrimary}]}>{item.subjectCode} · {item.subjectName}</Text><Text style={[typography.bodySmall,{color:colors.textSecondary}]}>{item.batchName} · {new Date(item.scheduledAt).toLocaleString()}</Text></View><Badge label={item.status==='COMPLETED'?'Completed':'Draft'} tone={item.status==='COMPLETED'?'success':'warning'}/></View><Text style={[typography.bodySmall,{color:colors.textMuted}]}>{item.status==='COMPLETED'?`${item.present} present · ${item.absent} absent`:'Attendance has not been submitted.'}{item.correctedAt?' · Corrected':''}</Text><View style={{alignSelf:'flex-start'}}><Button label={item.status==='COMPLETED'?'Correct attendance':'Continue session'} variant="text" onPress={()=>router.push((item.status==='COMPLETED'?`/lecturer/attendance/${item.id}?correct=1`:`/lecturer/attendance/${item.id}`) as Href)}/></View></View>)}</View>:<StateView state="empty" title="No attendance history" message="Completed sessions will appear here."/>):null}</PageContainer></LecturerShell>}

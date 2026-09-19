@@ -1,0 +1,50 @@
+import { useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AttendancePercentage, AttendanceProgress, AttendanceStatusIndicator, RecognitionStatus } from '@/design-system/components/attendance';
+import { Badge, Button, Card, ListItem, Progress, Statistic } from '@/design-system/components/core';
+import { AlertBanner, BottomSheet, Dialog, ProcessingIndicator, Toast } from '@/design-system/components/feedback';
+import { Checkbox, DateTimeField, SearchField, SegmentedControl, SelectField, SwitchField, TextField } from '@/design-system/components/forms';
+import { BackButton, Header, NavigationItem } from '@/design-system/components/navigation';
+import { ConsentNotice, NotificationBadge, PermissionNotice, PrivacyNotice } from '@/design-system/components/permissions';
+import { SkeletonCard, StateView } from '@/design-system/components/states';
+import { brandColors, colorSchemes, radii, spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme, type ThemePreference } from '@/design-system/theme-provider';
+import { useResponsive } from '@/design-system/use-responsive';
+
+function Section({ title, detail, children }: React.PropsWithChildren<{ title: string; detail?: string }>) { const { colors } = useRollCallTheme(); return <View style={{ gap: spacing.md }}><View style={{ gap: spacing.xs }}><Text accessibilityRole="header" style={[typography.heading, { color: colors.textPrimary }]}>{title}</Text>{detail ? <Text style={[typography.bodySmall, { color: colors.textMuted }]}>{detail}</Text> : null}</View>{children}</View>; }
+
+export default function DesignPlayground() {
+  const { colors, scheme, preference, setPreference, reduceMotion } = useRollCallTheme(); const responsive = useResponsive(); const insets = useSafeAreaInsets();
+  const [checked, setChecked] = useState(true); const [switchOn, setSwitchOn] = useState(true); const [segment, setSegment] = useState<'one' | 'two'>('one'); const [dialog, setDialog] = useState(false); const [sheet, setSheet] = useState(false);
+  const themeOptions = [{ label: 'System', value: 'system' }, { label: 'Light', value: 'light' }, { label: 'Dark', value: 'dark' }] as const;
+  return <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ width: '100%', maxWidth: responsive.maxContentWidth, alignSelf: 'center', paddingTop: Math.max(insets.top, spacing.xxl), paddingBottom: Math.max(insets.bottom, spacing.giant), paddingHorizontal: responsive.contentPadding, gap: spacing.giant }}>
+    <Header title="RollCall design system" subtitle={`Internal Build 1 playground · ${responsive.size} · ${scheme} mode`} trailing={<Badge label={reduceMotion ? 'Reduced motion' : 'Standard motion'} tone="info" />} />
+    <Card style={{ backgroundColor: colors.surfaceSecondary }}><Text style={[typography.largeTitle, { color: colors.textPrimary }]}>One system, native everywhere.</Text><Text style={[typography.body, { color: colors.textSecondary }]}>Tokens and primitives for accessible attendance experiences across phones, tablets, and larger screens.</Text><SegmentedControl value={preference} options={themeOptions} onChange={(value) => setPreference(value as ThemePreference)} /></Card>
+
+    <Section title="Colour" detail="Brand anchors and semantic roles"><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>{Object.entries(brandColors).map(([name, value]) => <View key={name} style={{ width: responsive.isCompact ? '47%' : 160, gap: spacing.sm }}><View style={{ height: 72, borderRadius: radii.md, backgroundColor: value, borderWidth: 1, borderColor: colors.borderSubtle }} /><Text style={[typography.caption, { color: colors.textPrimary }]}>{name}</Text><Text selectable style={[typography.numeric, { color: colors.textMuted }]}>{value}</Text></View>)}</View><Text style={[typography.caption, { color: colors.textMuted }]}>Semantic token count: {Object.keys(colorSchemes.light).length}</Text></Section>
+
+    <Section title="Typography"><Card><Text style={[typography.display, { color: colors.textPrimary }]}>Display</Text><Text style={[typography.largeTitle, { color: colors.textPrimary }]}>Large title</Text><Text style={[typography.title, { color: colors.textPrimary }]}>Title</Text><Text style={[typography.heading, { color: colors.textPrimary }]}>Heading</Text><Text style={[typography.subheading, { color: colors.textPrimary }]}>Subheading</Text><Text style={[typography.body, { color: colors.textSecondary }]}>Body text scales with system accessibility preferences.</Text><Text style={[typography.caption, { color: colors.textMuted }]}>Caption and supporting metadata</Text><Text style={[typography.percentage, { color: colors.primary }]}>82%</Text></Card></Section>
+
+    <Section title="Buttons" detail="Default, pressed, disabled, loading, and destructive states"><View style={{ flexDirection: responsive.isCompact ? 'column' : 'row', flexWrap: 'wrap', gap: spacing.md }}><Button label="Primary action" /><Button label="Secondary" variant="secondary" /><Button label="Text action" variant="text" /><Button label="Remove" variant="destructive" /><Button label="Disabled" disabled /><Button label="Saving" loading /></View></Section>
+
+    <Section title="Inputs and controls"><View style={{ flexDirection: responsive.isExpanded ? 'row' : 'column', gap: spacing.xl }}><View style={{ flex: 1, gap: spacing.lg }}><TextField label="Text input" placeholder="Enter a value" required /><TextField label="Password" placeholder="Password" password /><SearchField /><TextField label="Validation" value="Invalid value" error="Enter a valid value." /></View><View style={{ flex: 1, gap: spacing.lg }}><SelectField label="Select" value="Selected option" /><DateTimeField label="Date and time" value="18 Sep 2026, 10:30 AM" /><Checkbox label="Selected checkbox" checked={checked} onChange={setChecked} /><SwitchField label="Notifications" detail="Uses the platform-native switch." value={switchOn} onValueChange={setSwitchOn} /><SegmentedControl value={segment} options={[{ label: 'First', value: 'one' }, { label: 'Second', value: 'two' }]} onChange={setSegment} /></View></View></Section>
+
+    <Section title="Information"><View style={{ flexDirection: responsive.isExpanded ? 'row' : 'column', gap: spacing.md }}><Card style={{ flex: 1 }}><Statistic value="1,284" label="Example statistic" /><Progress value={68} label="Progress" /></Card><View style={{ flex: 1, gap: spacing.sm }}><ListItem title="List item" detail="Supporting information" trailing={<Badge label="Active" tone="success" />} /><ListItem title="Interactive item" detail="Pressed state included" onPress={() => {}} /><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><Badge label="Neutral" /><Badge label="Success" tone="success" /><Badge label="Warning" tone="warning" /><Badge label="Error" tone="error" /><NotificationBadge count={4} /></View></View></View></Section>
+
+    <Section title="Attendance primitives"><Card><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xxl, alignItems: 'center' }}><AttendancePercentage value={87} status="good" /><AttendancePercentage value={76} status="warning" /><AttendancePercentage value={62} status="low" /></View><AttendanceProgress value={76} status="warning" /><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><AttendanceStatusIndicator status="good" /><RecognitionStatus state="recognized" /><RecognitionStatus state="not-recognized" /><RecognitionStatus state="processing" /><RecognitionStatus state="failed" /></View></Card></Section>
+
+    <Section title="Feedback"><AlertBanner title="Information" message="A concise message explains what happened and what to do next." /><AlertBanner title="Action needed" message="This example uses text and structure, not colour alone." tone="warning" /><Toast message="Changes saved" tone="success" /><ProcessingIndicator /><View style={{ flexDirection: 'row', gap: spacing.sm }}><Button label="Open dialog" variant="secondary" onPress={() => setDialog(true)} /><Button label="Open sheet" variant="secondary" onPress={() => setSheet(true)} /></View></Section>
+
+    <Section title="Global states"><View style={{ flexDirection: responsive.isExpanded ? 'row' : 'column', gap: spacing.md }}><View style={{ flex: 1, gap: spacing.md }}><SkeletonCard /><StateView state="loading" /></View><View style={{ flex: 1, gap: spacing.md }}><StateView state="empty" /><StateView state="error" onRetry={() => {}} /><StateView state="offline" onRetry={() => {}} /></View></View></Section>
+
+    <Section title="Navigation primitives"><Card><Header title="Header" subtitle="Safe-area aware container" leading={<BackButton />} /><View style={{ flexDirection: 'row', gap: spacing.sm }}><NavigationItem label="Overview" selected /><NavigationItem label="History" /></View></Card></Section>
+
+    <Section title="Permission and privacy"><PermissionNotice title="Permission explanation" message="Explain why access is needed before invoking the platform permission prompt." /><PermissionNotice title="Access unavailable" message="Give a clear recovery path after denial." denied /><PrivacyNotice title="Sensitive information">Use plain language to explain collection, use, retention, and available controls.</PrivacyNotice><ConsentNotice title="Confirm consent" message="Consent must be specific, informed, and reversible." /></Section>
+
+    <Dialog visible={dialog} title="Confirm action" message="Use confirmation only when the consequence warrants interruption." onDismiss={() => setDialog(false)} onConfirm={() => setDialog(false)} />
+    <BottomSheet visible={sheet} title="Sheet primitive" onDismiss={() => setSheet(false)}><Text style={[typography.body, { color: colors.textSecondary }]}>A reusable presentation surface for short contextual tasks.</Text><Button label="Done" onPress={() => setSheet(false)} /></BottomSheet>
+  </ScrollView>;
+}
+
+
