@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { Confirmation } from '@/design-system/components/feedback';
-import { radii, sizing, spacing, typography } from '@/design-system/tokens';
+import { radii, sizing, spacing } from '@/design-system/tokens';
 import { useRollCallTheme } from '@/design-system/theme-provider';
 import { PageContainer } from '@/shell/app-shell';
 import { HodShell } from '@/hod/components';

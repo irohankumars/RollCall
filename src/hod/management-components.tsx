@@ -7,7 +7,6 @@ import { TextField } from '@/design-system/components/forms';
 import { radii, sizing, spacing, typography } from '@/design-system/tokens';
 import { useRollCallTheme } from '@/design-system/theme-provider';
 import { useResponsive } from '@/design-system/use-responsive';
-import type { EntityStatus } from './management-provider';
 
 export function ManagementHeader({ title, description, action, onAction }: { title: string; description?: string; action?: string; onAction?: () => void }) {
   const { colors } = useRollCallTheme(); const { isCompact } = useResponsive();
@@ -22,8 +21,8 @@ export function FilterChips<T extends string>({ value, options, onChange }: { va
   const { colors } = useRollCallTheme(); return <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>{options.map((option) => { const selected = value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(option.value)} style={({ pressed }) => ({ minHeight: sizing.touchTarget, justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radii.full, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.surfaceSecondary : colors.surface, opacity: pressed ? .72 : 1 })}><Text style={[typography.label, { color: selected ? colors.primary : colors.textSecondary }]}>{option.label}</Text></Pressable>; })}</View>;
 }
 
-export function ManagementRow({ title, detail, meta, status, onPress, actions }: { title: string; detail: string; meta?: string; status?: EntityStatus | 'Current' | 'Assigned' | 'Unassigned'; onPress?: () => void; actions?: React.ReactNode }) {
-  const { colors } = useRollCallTheme(); const { isCompact } = useResponsive(); const tone = status === 'Active' || status === 'Current' || status === 'Assigned' ? 'success' : status === 'Pending' || status === 'Unassigned' ? 'warning' : 'neutral';
+export function ManagementRow({ title, detail, meta, status, onPress, actions }: { title: string; detail: string; meta?: string; status?: string; onPress?: () => void; actions?: React.ReactNode }) {
+  const { colors } = useRollCallTheme(); const { isCompact } = useResponsive(); const tone = ['Active','Current','Assigned','Approved','Sent','Resolved'].includes(status ?? '') ? 'success' : ['Pending','Unassigned','Submitted','Under Review','Draft','Ready'].includes(status ?? '') ? 'warning' : status === 'Failed' || status === 'Rejected' ? 'error' : 'neutral';
   const body = <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}><View style={{ flex: 1, gap: spacing.xs }}><Text style={[typography.subheading, { color: colors.textPrimary }]}>{title}</Text><Text style={[typography.bodySmall, { color: colors.textSecondary }]}>{detail}</Text>{meta ? <Text style={[typography.caption, { color: colors.textMuted }]}>{meta}</Text> : null}</View>{status ? <Badge label={status} tone={tone} /> : null}{actions}{onPress ? <Ionicons accessibilityElementsHidden name="chevron-forward" size={sizing.iconMd} color={colors.textMuted} /> : null}</View>;
   return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={`${title}, ${detail}`} onPress={onPress} style={({ pressed }) => ({ minHeight: isCompact ? 88 : 76, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle, opacity: pressed ? .68 : 1 })}>{body}</Pressable> : <View style={{ minHeight: 76, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle }}>{body}</View>;
 }
