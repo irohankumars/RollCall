@@ -1,0 +1,2 @@
+import { StudentInformationPage } from '@/student/information-page';
+export default function ProductInfo() { return <StudentInformationPage title="About RollCall" subtitle="Product information" sections={[{ title: 'Purpose', body: 'RollCall helps students review institution-provided attendance, schedules, notifications, and academic information in one focused workspace.' }, { title: 'This build', body: 'This V1 interface uses local sample data. It does not claim that an external attendance or support service is connected.' }]} />; }

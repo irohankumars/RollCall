@@ -1,0 +1,2 @@
+import { StudentInformationPage } from '@/student/information-page';
+export default function PrivacyInfo() { return <StudentInformationPage title="Privacy Policy" subtitle="Placeholder information" sections={[{ title: 'Status', body: 'A final institution-approved privacy policy has not been connected to this frontend build.' }, { title: 'Student information', body: 'The interface is designed to show the minimum attendance and academic information needed for the student experience.' }]} />; }

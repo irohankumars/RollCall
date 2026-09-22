@@ -1,11 +1,51 @@
 import { Text, View } from 'react-native';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/auth/auth-provider';
-import { Badge, Button, Statistic } from '@/design-system/components/core';
-import { spacing, typography } from '@/design-system/tokens';
+import { StateView } from '@/design-system/components/states';
+import { breakpoints, sizing, spacing, typography } from '@/design-system/tokens';
 import { useRollCallTheme } from '@/design-system/theme-provider';
+import { useResponsive } from '@/design-system/use-responsive';
 import { PageContainer } from '@/shell/app-shell';
-import { LecturerShell, ResourceState, SectionHeading } from '@/lecturer/components';
+import { LecturerShell, SectionHeading } from '@/lecturer/components';
+import { AttendanceAction, ClassAttendanceSummary, ClassDetailHeader, ClassInformation, DetailPageSkeleton, RecentSessionRow, StudentAccessRow } from '@/lecturer/detail-components';
 import { lecturerClient } from '@/lecturer/lecturer-client';
 import { useResource } from '@/lecturer/use-resource';
-export default function ClassDetails(){const {colors}=useRollCallTheme();const {classId}=useLocalSearchParams<{classId:string}>();const {session}=useAuth();const token=session?.token??'';const resource=useResource(()=>lecturerClient.classDetails(token,classId),[token,classId]);const item=resource.data;return <LecturerShell activeKey="classes" title={item?.subjectCode??'Class details'} subtitle={item?.batchName} back><PageContainer width="detail"><ResourceState loading={resource.loading} error={resource.error} retry={resource.retry}/>{item?<><View style={{gap:spacing.sm}}><Text accessibilityRole="header" style={[typography.title,{color:colors.textPrimary}]}>{item.subjectName}</Text><Text style={[typography.body,{color:colors.textSecondary}]}>{item.batchName} · {item.semester}</Text><Badge label={item.requiresAttendance?'Attendance due':'On schedule'} tone={item.requiresAttendance?'warning':'success'}/></View><View style={{flexDirection:'row',gap:spacing.giant,flexWrap:'wrap'}}><Statistic value={String(item.studentCount)} label="Students"/><Statistic value={String(item.completedSessions)} label="Sessions"/></View><View style={{paddingVertical:spacing.lg,borderTopWidth:1,borderBottomWidth:1,borderColor:colors.borderSubtle,gap:spacing.md}}><SectionHeading title="Class information"/><Text style={[typography.body,{color:colors.textPrimary}]}>{item.schedule}</Text><Text style={[typography.bodySmall,{color:colors.textSecondary}]}>Lecturer · {item.lecturer?.name}</Text></View><View style={{gap:spacing.md}}><Button label="Start attendance" onPress={()=>router.push(`/lecturer/classes/${classId}/attendance` as Href)}/><Button label="View student roster" variant="secondary" onPress={()=>router.push(`/lecturer/classes/${classId}/students` as Href)}/></View></>:null}</PageContainer></LecturerShell>}
+
+export default function ClassDetails() {
+  const { colors } = useRollCallTheme();
+  const { width } = useResponsive();
+  const { classId } = useLocalSearchParams<{ classId: string }>();
+  const { session } = useAuth();
+  const token = session?.token ?? '';
+  const classResource = useResource(() => lecturerClient.classDetails(token, classId), [token, classId]);
+  const rosterResource = useResource(() => lecturerClient.roster(token, classId), [token, classId]);
+  const historyResource = useResource(() => lecturerClient.history(token), [token]);
+  const item = classResource.data;
+  const roster = rosterResource.data ?? [];
+  const sessions = (historyResource.data ?? []).filter((entry) => entry.classId === classId && entry.status === 'COMPLETED');
+  const attendanceTotal = sessions.reduce((total, entry) => total + entry.total, 0);
+  const attendancePresent = sessions.reduce((total, entry) => total + entry.present, 0);
+  const attendancePercentage = attendanceTotal ? Math.round(attendancePresent * 100 / attendanceTotal) : null;
+  const isWide = width >= breakpoints.wide;
+  const loading = classResource.loading || rosterResource.loading || historyResource.loading;
+
+  const information = item ? <View style={{ gap: spacing.sm }}><SectionHeading title="Class information" /><ClassInformation item={item} /></View> : null;
+  const attendance = item ? <View style={{ gap: spacing.md }}><SectionHeading title="Attendance summary" /><ClassAttendanceSummary percentage={attendancePercentage} students={roster.length} completedSessions={sessions.length} /><AttendanceAction classId={classId} /></View> : null;
+  const students = item ? <View style={{ gap: spacing.sm }}><SectionHeading title="Students" /><StudentAccessRow classId={classId} count={roster.length} />{roster.length === 0 ? <Text style={[typography.bodySmall, { color: colors.textMuted }]}>No students are currently assigned to this class.</Text> : null}</View> : null;
+  const recent = <View style={{ gap: spacing.sm }}><SectionHeading title="Recent sessions" />{historyResource.error ? <StateView state={historyResource.error.code === 'NETWORK_ERROR' ? 'offline' : 'error'} message={historyResource.error.message} onRetry={historyResource.retry} /> : sessions.length ? sessions.slice(0, 5).map((entry) => <RecentSessionRow key={entry.id} item={entry} />) : <StateView state="empty" title="No session history" message="Completed attendance sessions will appear here." />}</View>;
+
+  return <LecturerShell activeKey="classes" title="Class details" subtitle={item ? `${item.subjectCode} · ${item.batchName}` : undefined} back backFallback="/lecturer/classes">
+    <PageContainer width="full" contentContainerStyle={{ maxWidth: sizing.contentMax }}>
+      {loading ? <DetailPageSkeleton /> : null}
+      {!loading && classResource.error ? <StateView state={classResource.error.status === 404 ? 'empty' : classResource.error.code === 'NETWORK_ERROR' ? 'offline' : 'error'} title={classResource.error.status === 404 ? 'Class not found' : undefined} message={classResource.error.message} onRetry={classResource.retry} /> : null}
+      {!loading && !classResource.error && rosterResource.error ? <StateView state={rosterResource.error.code === 'NETWORK_ERROR' ? 'offline' : 'error'} message={rosterResource.error.message} onRetry={rosterResource.retry} /> : null}
+      {!loading && item && !rosterResource.error ? <>
+        <ClassDetailHeader item={item} />
+        {isWide ? <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.giant }}>
+          <View style={{ flex: 1, gap: spacing.xxl }}>{information}{recent}</View>
+          <View style={{ width: 344, gap: spacing.xxl }}>{attendance}{students}</View>
+        </View> : <View style={{ gap: spacing.xxl }}>{information}{attendance}{students}{recent}</View>}
+      </> : null}
+    </PageContainer>
+  </LecturerShell>;
+}

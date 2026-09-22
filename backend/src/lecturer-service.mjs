@@ -3,7 +3,7 @@ import { AppError, forbidden } from './errors.mjs';
 import { Roles } from './roles.mjs';
 
 function requireLecturer(session) {
-  if (session.user.role !== Roles.LECTURER) throw forbidden('Lecturer access is required.');
+  if (![Roles.LECTURER, Roles.HOD].includes(session.user.role)) throw forbidden('Teaching access is required.');
   return session.user;
 }
 

@@ -1,4 +1,6 @@
 :root {
+  --rollcall-input-background: #ffffff;
+  --rollcall-input-text: #112d4e;
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
     Segoe UI Symbol, Noto Color Emoji;
@@ -6,4 +8,88 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--rollcall-input-text) !important;
+  caret-color: var(--rollcall-input-text);
+  background-color: var(--rollcall-input-background) !important;
+  background-clip: padding-box !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--rollcall-input-background) inset !important;
+  box-shadow: 0 0 0 1000px var(--rollcall-input-background) inset !important;
+  border-radius: inherit;
+  transition: background-color 9999s ease-out 0s;
+}
+
+:where(
+  a[href],
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  [contenteditable='true'],
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  [tabindex]:not([tabindex='-1'])
+) {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
+
+:where(
+  a[href],
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  [contenteditable='true'],
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  [tabindex]:not([tabindex='-1'])
+):focus,
+:where(
+  a[href],
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  [contenteditable='true'],
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
 }

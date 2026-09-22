@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RollCallThemeProvider, useRollCallTheme } from '@/design-system/theme-provider';
 import { GlobalOverlayProvider } from '@/shell/overlay-provider';
 import { AuthProvider } from '@/auth/auth-provider';
+import '../global.css';
 
 function NavigationRoot() {
   const { scheme, colors } = useRollCallTheme(); const base = scheme === 'dark' ? DarkTheme : DefaultTheme;

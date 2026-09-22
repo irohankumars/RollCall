@@ -1,13 +1,62 @@
 import { Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useAuth } from '@/auth/auth-provider';
-import { Statistic } from '@/design-system/components/core';
 import { StateView } from '@/design-system/components/states';
-import { spacing, typography } from '@/design-system/tokens';
+import { breakpoints, sizing, spacing, typography } from '@/design-system/tokens';
 import { useRollCallTheme } from '@/design-system/theme-provider';
+import { useResponsive } from '@/design-system/use-responsive';
 import { PageContainer } from '@/shell/app-shell';
-import { ClassRow, LecturerShell, ResourceState, SectionHeading } from '@/lecturer/components';
+import { ActivityRow, LecturerPageSkeleton, LecturerShell, NextClassPanel, ResourceState, SectionHeading, TodayClassRow } from '@/lecturer/components';
 import { lecturerClient } from '@/lecturer/lecturer-client';
 import { useResource } from '@/lecturer/use-resource';
 
-export default function LecturerHome(){const {colors}=useRollCallTheme();const {session}=useAuth();const token=session?.token??'';const resource=useResource(()=>lecturerClient.overview(token),[token]);return <LecturerShell activeKey="today" title="Today" subtitle={session?.user.name}><PageContainer width="standard"><ResourceState loading={resource.loading} error={resource.error} retry={resource.retry}/>{resource.data?<><View style={{flexDirection:'row',gap:spacing.giant,flexWrap:'wrap'}}><Statistic value={String(resource.data.today.length)} label="Classes today"/><Statistic value={String(resource.data.requiringAttendance.length)} label="Attendance due"/><Statistic value={String(resource.data.recentSessions.length)} label="Recent sessions"/></View><View style={{gap:spacing.sm}}><SectionHeading title="Next classes" action="All classes" onAction={()=>router.push('/lecturer/classes' as Href)}/>{resource.data.upcoming.length?resource.data.upcoming.map(item=><ClassRow key={item.id} item={item}/>):<StateView state="empty" title="No upcoming classes" message="Your assigned classes will appear here."/>}</View>{resource.data.requiringAttendance.length?<View style={{gap:spacing.sm}}><SectionHeading title="Needs attention"/>{resource.data.requiringAttendance.map(item=><ClassRow key={item.id} item={item}/>)}</View>:null}<View style={{gap:spacing.sm}}><SectionHeading title="Recent attendance" action="History" onAction={()=>router.push('/lecturer/history' as Href)}/>{resource.data.recentSessions.map(item=><View key={item.id} style={{paddingVertical:spacing.md,borderBottomWidth:1,borderBottomColor:colors.borderSubtle}}><Text style={[typography.subheading,{color:colors.textPrimary}]}>{item.subjectCode} · {item.batchName}</Text><Text style={[typography.bodySmall,{color:colors.textSecondary}]}>{new Date(item.scheduledAt).toLocaleString()} · {item.present}/{item.total} present</Text></View>)}</View></>:null}</PageContainer></LecturerShell>}
+function greeting() {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+function familiarName(name?: string) {
+  if (!name) return 'Lecturer';
+  const parts = name.trim().split(/\s+/);
+  return parts[0]?.toLowerCase().replace('.', '') === 'dr' ? parts.slice(0, 2).join(' ') : parts[0];
+}
+
+export default function LecturerHome() {
+  const { colors } = useRollCallTheme();
+  const { width } = useResponsive();
+  const { session } = useAuth();
+  const token = session?.token ?? '';
+  const resource = useResource(() => lecturerClient.overview(token), [token]);
+  const date = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const isWide = width >= breakpoints.wide;
+
+  return <LecturerShell activeKey="today" title="Today" subtitle={date}>
+    <PageContainer width="full" contentContainerStyle={{ maxWidth: sizing.contentMax }}>
+      {resource.loading ? <LecturerPageSkeleton /> : null}
+      <ResourceState loading={false} error={resource.error} retry={resource.retry} />
+      {resource.data ? <>
+        <View style={{ gap: spacing.xs }}>
+          <Text accessibilityRole="header" style={[typography.largeTitle, { color: colors.textPrimary }]}>{greeting()}, {familiarName(session?.user.name)}</Text>
+          <Text style={[typography.body, { color: colors.textSecondary }]}>{resource.data.today.length === 0 ? 'Your schedule is clear today.' : resource.data.today.length === 1 ? 'You have one class scheduled today.' : `You have ${resource.data.today.length} classes scheduled today.`}</Text>
+        </View>
+
+        {resource.data.upcoming[0] ? <View style={{ gap: spacing.sm }}>
+          <SectionHeading title="Next class" />
+          <NextClassPanel item={resource.data.upcoming[0]} />
+        </View> : null}
+
+        <View style={{ flexDirection: isWide ? 'row' : 'column', alignItems: 'flex-start', gap: isWide ? spacing.giant : spacing.xxl }}>
+          <View style={{ flex: 1, width: '100%', gap: spacing.sm }}>
+            <SectionHeading title="Today's schedule" action="All classes" onAction={() => router.push('/lecturer/classes' as Href)} />
+            {resource.data.today.length ? resource.data.today.map((item) => <TodayClassRow key={item.id} item={item} />) : <StateView state="empty" title="No classes today" message="You have no assigned classes scheduled for today." />}
+          </View>
+
+          <View style={{ width: isWide ? 344 : '100%', gap: spacing.sm }}>
+            <SectionHeading title="Recent activity" action="History" onAction={() => router.push('/lecturer/history' as Href)} />
+            {resource.data.recentSessions.length ? resource.data.recentSessions.slice(0, 4).map((item) => <ActivityRow key={item.id} item={item} />) : <Text style={[typography.bodySmall, { color: colors.textMuted, paddingVertical: spacing.lg }]}>Completed attendance sessions will appear here.</Text>}
+          </View>
+        </View>
+      </> : null}
+    </PageContainer>
+  </LecturerShell>;
+}

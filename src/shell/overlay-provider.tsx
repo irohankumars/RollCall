@@ -23,9 +23,9 @@ export function GlobalOverlayProvider({ children }: React.PropsWithChildren) {
   const showToast = (message: string) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(undefined), 2400); };
   return <OverlayContext value={{ showToast, showAlert: setAlert, showConfirmation: setDialog, showSheet: setSheet, setLoading }}>
     {children}
-    <View style={{ position: 'absolute', inset: 0, pointerEvents: 'box-none' }}>
-      {alert ? <View style={{ position: 'absolute', top: spacing.giant, left: spacing.lg, right: spacing.lg, maxWidth: 560, alignSelf: 'center', pointerEvents: 'box-none' }}><AlertBanner title={alert.title} message={alert.message} action={<Button label="Dismiss" variant="text" onPress={() => setAlert(undefined)} />} /></View> : null}
-      {toast ? <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.giant, alignItems: 'center', pointerEvents: 'none' }}><Toast message={toast} /></View> : null}
+    <View pointerEvents="box-none" style={{ position: 'absolute', inset: 0 }}>
+      {alert ? <View pointerEvents="box-none" style={{ position: 'absolute', top: spacing.giant, left: spacing.lg, right: spacing.lg, maxWidth: 560, alignSelf: 'center' }}><AlertBanner title={alert.title} message={alert.message} action={<Button label="Dismiss" variant="text" onPress={() => setAlert(undefined)} />} /></View> : null}
+      {toast ? <View pointerEvents="none" style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.giant, alignItems: 'center' }}><Toast message={toast} /></View> : null}
       {loading ? <View accessibilityRole="progressbar" accessibilityLabel="Loading" style={{ position: 'absolute', inset: 0, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}><ActivityIndicator size="large" color={colors.textInverse} /><Text style={[typography.label, { color: colors.textInverse }]}>Loading</Text></View> : null}
     </View>
     <Dialog visible={Boolean(dialog)} title={dialog?.title ?? ''} message={dialog?.message ?? ''} onDismiss={() => setDialog(undefined)} onConfirm={() => { setDialog(undefined); showToast('Confirmed'); }} />

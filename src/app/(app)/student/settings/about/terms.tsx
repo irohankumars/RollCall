@@ -1,0 +1,2 @@
+import { StudentInformationPage } from '@/student/information-page';
+export default function TermsInfo() { return <StudentInformationPage title="Terms" subtitle="Placeholder information" sections={[{ title: 'Status', body: 'Final institution-approved terms have not been connected to this frontend build.' }, { title: 'Use', body: 'Displayed attendance and academic records should be reviewed through the institution’s established process when a correction is needed.' }]} />; }

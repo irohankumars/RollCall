@@ -1,0 +1,40 @@
+import React, { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Badge, Button, Card, IconButton, Statistic } from '@/design-system/components/core';
+import { BottomSheet } from '@/design-system/components/feedback';
+import { TextField } from '@/design-system/components/forms';
+import { radii, sizing, spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme } from '@/design-system/theme-provider';
+import { useResponsive } from '@/design-system/use-responsive';
+import type { EntityStatus } from './management-provider';
+
+export function ManagementHeader({ title, description, action, onAction }: { title: string; description?: string; action?: string; onAction?: () => void }) {
+  const { colors } = useRollCallTheme(); const { isCompact } = useResponsive();
+  return <View style={{ flexDirection: isCompact ? 'column' : 'row', alignItems: isCompact ? 'stretch' : 'flex-end', gap: spacing.lg }}><View style={{ flex: 1, gap: spacing.xs }}><Text accessibilityRole="header" style={[typography.largeTitle, { color: colors.textPrimary }]}>{title}</Text>{description ? <Text style={[typography.body, { color: colors.textSecondary }]}>{description}</Text> : null}</View>{action ? <Button label={action} onPress={onAction} style={isCompact ? { width: '100%' } : undefined} /> : null}</View>;
+}
+
+export function ManagementSearch({ value, onChangeText, placeholder = 'Search' }: { value: string; onChangeText: (value: string) => void; placeholder?: string }) {
+  return <TextField label="Search" value={value} onChangeText={onChangeText} placeholder={placeholder} returnKeyType="search" />;
+}
+
+export function FilterChips<T extends string>({ value, options, onChange }: { value: T; options: readonly { value: T; label: string }[]; onChange: (value: T) => void }) {
+  const { colors } = useRollCallTheme(); return <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>{options.map((option) => { const selected = value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(option.value)} style={({ pressed }) => ({ minHeight: sizing.touchTarget, justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radii.full, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.surfaceSecondary : colors.surface, opacity: pressed ? .72 : 1 })}><Text style={[typography.label, { color: selected ? colors.primary : colors.textSecondary }]}>{option.label}</Text></Pressable>; })}</View>;
+}
+
+export function ManagementRow({ title, detail, meta, status, onPress, actions }: { title: string; detail: string; meta?: string; status?: EntityStatus | 'Current' | 'Assigned' | 'Unassigned'; onPress?: () => void; actions?: React.ReactNode }) {
+  const { colors } = useRollCallTheme(); const { isCompact } = useResponsive(); const tone = status === 'Active' || status === 'Current' || status === 'Assigned' ? 'success' : status === 'Pending' || status === 'Unassigned' ? 'warning' : 'neutral';
+  const body = <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}><View style={{ flex: 1, gap: spacing.xs }}><Text style={[typography.subheading, { color: colors.textPrimary }]}>{title}</Text><Text style={[typography.bodySmall, { color: colors.textSecondary }]}>{detail}</Text>{meta ? <Text style={[typography.caption, { color: colors.textMuted }]}>{meta}</Text> : null}</View>{status ? <Badge label={status} tone={tone} /> : null}{actions}{onPress ? <Ionicons accessibilityElementsHidden name="chevron-forward" size={sizing.iconMd} color={colors.textMuted} /> : null}</View>;
+  return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={`${title}, ${detail}`} onPress={onPress} style={({ pressed }) => ({ minHeight: isCompact ? 88 : 76, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle, opacity: pressed ? .68 : 1 })}>{body}</Pressable> : <View style={{ minHeight: 76, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle }}>{body}</View>;
+}
+
+export function SummaryStrip({ items }: { items: { value: string | number; label: string }[] }) { const { colors } = useRollCallTheme(); return <View style={{ flexDirection: 'row', flexWrap: 'wrap', borderRadius: radii.lg, borderWidth: 1, borderColor: colors.borderSubtle, backgroundColor: colors.surface, padding: spacing.lg, gap: spacing.xxl }}>{items.map((item) => <View key={item.label} style={{ minWidth: 96, flex: 1 }}><Statistic value={String(item.value)} label={item.label} /></View>)}</View>; }
+
+export function RelationshipSection({ title, children }: React.PropsWithChildren<{ title: string }>) { const { colors } = useRollCallTheme(); return <View style={{ gap: spacing.sm }}><Text accessibilityRole="header" style={[typography.heading, { color: colors.textPrimary }]}>{title}</Text><Card style={{ padding: spacing.lg, gap: 0 }}>{children}</Card></View>; }
+
+export function OptionPicker({ label, value, options, onChange, disabled }: { label: string; value?: string; options: { value: string; label: string; detail?: string }[]; onChange: (value: string) => void; disabled?: boolean }) {
+  const { colors } = useRollCallTheme(); const [open, setOpen] = useState(false); const selected = options.find((option) => option.value === value);
+  return <><View style={{ gap: spacing.sm }}><Text style={[typography.label, { color: colors.textPrimary }]}>{label}</Text><Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected?.label ?? 'not selected'}`} disabled={disabled} onPress={() => setOpen(true)} style={({ pressed }) => ({ minHeight: sizing.inputHeight, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: pressed ? colors.surfaceSecondary : colors.surface, paddingHorizontal: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: disabled ? .48 : 1 })}><Text style={[typography.body, { color: selected ? colors.textPrimary : colors.textMuted }]}>{selected?.label ?? 'Choose an option'}</Text><Ionicons name="chevron-down" size={sizing.iconSm} color={colors.textMuted} /></Pressable></View><BottomSheet visible={open} title={`Choose ${label.toLowerCase()}`} onDismiss={() => setOpen(false)}><View style={{ maxHeight: 420 }}>{options.map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected: option.value === value }} onPress={() => { onChange(option.value); setOpen(false); }} style={({ pressed }) => ({ minHeight: sizing.touchTarget, paddingVertical: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle, opacity: pressed ? .68 : 1 })}><View style={{ flex: 1, gap: spacing.xs }}><Text style={[typography.label, { color: colors.textPrimary }]}>{option.label}</Text>{option.detail ? <Text style={[typography.caption, { color: colors.textMuted }]}>{option.detail}</Text> : null}</View>{option.value === value ? <Ionicons name="checkmark-circle" size={sizing.iconMd} color={colors.primary} /> : null}</Pressable>)}</View></BottomSheet></>;
+}
+
+export function InlineActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) { const { colors } = useRollCallTheme(); return <View style={{ flexDirection: 'row' }}>{onEdit ? <IconButton label="Edit" onPress={onEdit}><Ionicons name="create-outline" size={sizing.iconSm} color={colors.primary} /></IconButton> : null}{onDelete ? <IconButton label="Remove" onPress={onDelete}><Ionicons name="trash-outline" size={sizing.iconSm} color={colors.error} /></IconButton> : null}</View>; }

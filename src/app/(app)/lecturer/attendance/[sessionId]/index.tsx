@@ -1,18 +1,74 @@
-/* eslint-disable react-hooks/set-state-in-effect -- server records initialize the editable attendance draft after loading */
-import { useDeferredValue, useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/auth/auth-provider';
-import { Avatar, Badge, Button, Statistic } from '@/design-system/components/core';
-import { Dialog } from '@/design-system/components/feedback';
+import { Badge } from '@/design-system/components/core';
 import { StateView } from '@/design-system/components/states';
-import { radii, sizing, spacing, typography } from '@/design-system/tokens';
+import { spacing, typography } from '@/design-system/tokens';
 import { useRollCallTheme } from '@/design-system/theme-provider';
-import { LecturerShell, ResourceState } from '@/lecturer/components';
+import { useResponsive } from '@/design-system/use-responsive';
+import { PageContainer } from '@/shell/app-shell';
+import { AttendanceSummary, type AttendanceMethod } from '@/lecturer/attendance-flow-components';
+import { DetailPageSkeleton } from '@/lecturer/detail-components';
+import { HistoricalAttendanceRow, SessionAttendanceFilterControl, type SessionAttendanceFilter } from '@/lecturer/history-components';
+import { LecturerShell, ResourceState, SectionHeading } from '@/lecturer/components';
 import { lecturerClient } from '@/lecturer/lecturer-client';
-import type { AttendanceMark, LecturerStudent } from '@/lecturer/types';
+import type { AttendanceMark, AttendanceSession } from '@/lecturer/types';
 import { useResource } from '@/lecturer/use-resource';
 
-function MarkControl({student,value,onChange}:{student:LecturerStudent;value?:AttendanceMark;onChange:(value:AttendanceMark)=>void}){const {colors}=useRollCallTheme();return <View style={{flexDirection:'row',gap:spacing.sm}}>{(['PRESENT','ABSENT'] as const).map(mark=><Pressable key={mark} accessibilityRole="radio" accessibilityLabel={`${student.name} ${mark.toLowerCase()}`} accessibilityState={{selected:value===mark}} onPress={()=>onChange(mark)} style={{minWidth:sizing.touchTarget,minHeight:40,paddingHorizontal:spacing.md,alignItems:'center',justifyContent:'center',borderRadius:radii.md,borderWidth:1,borderColor:value===mark?(mark==='PRESENT'?colors.success:colors.error):colors.border,backgroundColor:value===mark?(mark==='PRESENT'?colors.successSurface:colors.errorSurface):colors.surface}}><Text style={[typography.caption,{color:value===mark?(mark==='PRESENT'?colors.success:colors.error):colors.textSecondary}]}>{mark==='PRESENT'?'Present':'Absent'}</Text></Pressable>)}</View>}
+function SessionMetadata({ item, lecturerName }: { item: AttendanceSession; lecturerName: string }) {
+  const { colors } = useRollCallTheme(); const { isCompact } = useResponsive(); const date = new Date(item.scheduledAt);
+  const fields = [
+    { label: 'Date', value: date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) },
+    { label: 'Time', value: date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) },
+    { label: 'Lecturer', value: lecturerName },
+    { label: 'Method', value: item.method === 'FACE' ? 'Face recognition' : 'Manual attendance' },
+  ];
+  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.borderSubtle }}>{fields.map((field) => <View key={field.label} style={{ width: isCompact ? '50%' : '25%', minHeight: 76, paddingVertical: spacing.md, paddingRight: spacing.md, justifyContent: 'center', gap: spacing.xs }}><Text style={[typography.caption, { color: colors.textMuted }]}>{field.label}</Text><Text style={[typography.body, { color: colors.textPrimary }]}>{field.value}</Text></View>)}</View>;
+}
 
-export default function ManualAttendance(){const {colors}=useRollCallTheme();const {sessionId,correct}=useLocalSearchParams<{sessionId:string;correct?:string}>();const isCorrection=correct==='1';const {session}=useAuth();const token=session?.token??'';const resource=useResource(()=>lecturerClient.session(token,sessionId),[token,sessionId]);const [marks,setMarks]=useState<Record<string,AttendanceMark>>({});const [query,setQuery]=useState('');const deferred=useDeferredValue(query);const [review,setReview]=useState(false);const [confirm,setConfirm]=useState(false);const [processing,setProcessing]=useState(false);const [completed,setCompleted]=useState(false);const [submitError,setSubmitError]=useState('');useEffect(()=>{if(resource.data)setMarks(resource.data.records);},[resource.data]);const students=resource.data?.students??[];const visible=students.filter(x=>`${x.name} ${x.rollNumber}`.toLowerCase().includes(deferred.toLowerCase()));const present=Object.values(marks).filter(x=>x==='PRESENT').length;const absent=Object.values(marks).filter(x=>x==='ABSENT').length;const unmarked=students.length-present-absent;const setAll=(value:AttendanceMark)=>setMarks(Object.fromEntries(students.map(x=>[x.id,value])));const submit=async()=>{if(unmarked){setConfirm(false);return;}setProcessing(true);setSubmitError('');try{const records=students.map(x=>({studentId:x.id,status:marks[x.id]}));if(isCorrection)await lecturerClient.correct(token,sessionId,records,'Corrected by lecturer');else await lecturerClient.submit(token,sessionId,records);setCompleted(true);setConfirm(false);}catch(reason){setSubmitError(reason instanceof Error?reason.message:'Attendance could not be submitted.');setConfirm(false);}finally{setProcessing(false);}};if(completed)return <LecturerShell activeKey="history" title="Attendance complete"><View style={{padding:spacing.lg,maxWidth:680,width:'100%',alignSelf:'center'}}><StateView state="success" title={isCorrection?'Attendance corrected':'Attendance submitted'} message={`${present} present · ${absent} absent`} /><Button label="View history" onPress={()=>router.replace('/lecturer/history' as Href)}/></View></LecturerShell>;return <LecturerShell activeKey="classes" title={review?'Review attendance':isCorrection?'Correct attendance':'Manual attendance'} subtitle={resource.data?`${resource.data.subjectCode} · ${resource.data.batchName}`:undefined} back><ResourceState loading={resource.loading} error={resource.error} retry={resource.retry}/>{resource.data?(review?<View style={{padding:spacing.lg,gap:spacing.xl,maxWidth:680,width:'100%',alignSelf:'center'}}><View style={{flexDirection:'row',gap:spacing.giant,flexWrap:'wrap'}}><Statistic value={String(students.length)} label="Students"/><Statistic value={String(present)} label="Present"/><Statistic value={String(absent)} label="Absent"/><Statistic value={String(unmarked)} label="Not marked"/></View>{unmarked?<StateView state="error" title="Attendance is incomplete" message={`${unmarked} student${unmarked===1?' is':'s are'} not marked. Return and complete every mark before submitting.`}/>:<StateView state="success" title="Ready to submit" message="Review the totals, then confirm the final attendance record."/>}{submitError?<Text accessibilityRole="alert" style={[typography.body,{color:colors.error}]}>{submitError}</Text>:null}<Button label="Return to marks" variant="secondary" onPress={()=>setReview(false)}/><Button label={isCorrection?'Confirm correction':'Confirm attendance'} loading={processing} disabled={unmarked>0} onPress={()=>setConfirm(true)}/></View>:<FlatList data={visible} keyExtractor={item=>item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={{padding:spacing.lg,gap:spacing.sm,maxWidth:840,width:'100%',alignSelf:'center',paddingBottom:100}} ListHeaderComponent={<View style={{gap:spacing.md,marginBottom:spacing.md}}><TextInput accessibilityLabel="Search students" placeholder="Search students" placeholderTextColor={colors.textMuted} value={query} onChangeText={setQuery} style={[typography.body,{minHeight:sizing.inputHeight,borderRadius:radii.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.surface,paddingHorizontal:spacing.lg,color:colors.textPrimary}]}/><View style={{flexDirection:'row',gap:spacing.sm,flexWrap:'wrap'}}><Button label="Mark all present" variant="secondary" onPress={()=>setAll('PRESENT')}/><Button label="Mark all absent" variant="text" onPress={()=>setAll('ABSENT')}/><Badge label={`${present+absent}/${students.length} marked`} tone={unmarked?'warning':'success'}/></View></View>} ListEmptyComponent={<StateView state="empty" title="No matching students" message="Try another search."/>} renderItem={({item})=><View style={{minHeight:72,paddingVertical:spacing.sm,borderBottomWidth:1,borderBottomColor:colors.borderSubtle,flexDirection:'row',alignItems:'center',gap:spacing.md}}><Avatar name={item.name} size="small"/><View style={{flex:1}}><Text style={[typography.subheading,{color:colors.textPrimary}]}>{item.name}</Text><Text style={[typography.caption,{color:colors.textMuted}]}>{item.rollNumber}</Text></View><MarkControl student={item} value={marks[item.id]} onChange={value=>setMarks(current=>({...current,[item.id]:value}))}/></View>} ListFooterComponent={<Button label="Review attendance" onPress={()=>setReview(true)} style={{marginTop:spacing.xl}}/>}/>):null}<Dialog visible={confirm} title={isCorrection?'Confirm attendance correction?':'Submit attendance?'} message={`${present} present and ${absent} absent. ${isCorrection?'This records a correction timestamp and replaces the previous marks.':'This session cannot be submitted twice.'}`} confirmLabel={isCorrection?'Save correction':'Submit attendance'} onDismiss={()=>setConfirm(false)} onConfirm={()=>void submit()}/></LecturerShell>}
+function SessionDetailContent({ item, lecturerName }: { item: AttendanceSession; lecturerName: string }) {
+  const { colors } = useRollCallTheme(); const [filter, setFilter] = useState<SessionAttendanceFilter>('ALL');
+  const visible = item.students.filter((student) => filter === 'ALL' || item.records[student.id] === filter);
+  return <PageContainer width="standard">
+    <View style={{ gap: spacing.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.lg }}><View style={{ flex: 1, gap: spacing.xs }}><Text accessibilityRole="header" style={[typography.title, { color: colors.textPrimary }]}>{item.subjectName}</Text><Text style={[typography.subheading, { color: colors.textSecondary }]}>{item.subjectCode} · {item.batchName}</Text></View><Badge label="Completed" tone="success" /></View>
+    </View>
+    <SessionMetadata item={item} lecturerName={lecturerName} />
+    <View style={{ paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle }}><AttendanceSummary present={item.present} absent={item.absent} total={item.total} /></View>
+    <View style={{ gap: spacing.sm }}><SectionHeading title="Students" /><SessionAttendanceFilterControl value={filter} onChange={setFilter} /><Text accessibilityLiveRegion="polite" style={[typography.caption, { color: colors.textMuted }]}>{visible.length} of {item.students.length} students</Text></View>
+    {item.students.length ? <View>{visible.map((student) => <HistoricalAttendanceRow key={student.id} item={student} status={item.records[student.id] ?? 'ABSENT'} />)}{!visible.length ? <StateView state="empty" title="No matching students" message="Choose another attendance filter." /> : null}</View> : <StateView state="empty" title="No students in this session" message="This historical record does not contain student attendance rows." />}
+  </PageContainer>;
+}
+
+function LocalSessionDetail({ classId, present, confirmedAt, method }: { classId: string; present?: string; confirmedAt?: string; method: AttendanceMethod }) {
+  const { session } = useAuth(); const token = session?.token ?? '';
+  const classResource = useResource(() => lecturerClient.classDetails(token, classId), [token, classId]);
+  const rosterResource = useResource(() => lecturerClient.roster(token, classId), [token, classId]);
+  const loading = classResource.loading || rosterResource.loading; const students = useMemo(() => rosterResource.data ?? [], [rosterResource.data]);
+  const item = useMemo<AttendanceSession | undefined>(() => {
+    if (!classResource.data) return undefined; const presentIds = new Set((present ?? '').split(',').filter(Boolean)); const records = Object.fromEntries(students.map((student) => [student.id, presentIds.has(student.id) ? 'PRESENT' : 'ABSENT'])) as Record<string, AttendanceMark>; const scheduledAt = confirmedAt ?? new Date().toISOString(); const presentCount = students.filter((student) => records[student.id] === 'PRESENT').length;
+    return { id: `demo-${classId}`, classId, subjectCode: classResource.data.subjectCode, subjectName: classResource.data.subjectName, batchName: classResource.data.batchName, method, status: 'COMPLETED', scheduledAt, submittedAt: scheduledAt, correctedAt: null, present: presentCount, absent: students.length - presentCount, total: students.length, records, students };
+  }, [classId, classResource.data, confirmedAt, method, present, students]);
+  if (loading) return <PageContainer width="standard"><DetailPageSkeleton rows={7} /></PageContainer>;
+  if (classResource.error?.status === 404) return <PageContainer width="standard"><StateView state="error" title="Session not found" message="This local attendance session is no longer available." /></PageContainer>;
+  if (classResource.error) return <PageContainer width="standard"><ResourceState loading={false} error={classResource.error} retry={classResource.retry} /></PageContainer>;
+  if (rosterResource.error) return <PageContainer width="standard"><ResourceState loading={false} error={rosterResource.error} retry={rosterResource.retry} /></PageContainer>;
+  return item ? <SessionDetailContent item={item} lecturerName={session?.user.name ?? 'Lecturer'} /> : <PageContainer width="standard"><StateView state="error" title="Session not found" message="This local attendance session is unavailable." /></PageContainer>;
+}
+
+function SavedSessionDetail({ sessionId }: { sessionId: string }) {
+  const { session } = useAuth(); const token = session?.token ?? '';
+  const resource = useResource(() => lecturerClient.session(token, sessionId), [token, sessionId]);
+  if (resource.loading) return <PageContainer width="standard"><DetailPageSkeleton rows={7} /></PageContainer>;
+  if (resource.error?.status === 404) return <PageContainer width="standard"><StateView state="error" title="Session not found" message="The requested attendance session could not be found." /></PageContainer>;
+  if (resource.error) return <PageContainer width="standard"><ResourceState loading={false} error={resource.error} retry={resource.retry} /></PageContainer>;
+  return resource.data ? <SessionDetailContent item={resource.data} lecturerName={session?.user.name ?? 'Lecturer'} /> : <PageContainer width="standard"><StateView state="error" title="Session not found" message="The requested attendance session could not be found." /></PageContainer>;
+}
+
+export default function SessionDetail() {
+  const { sessionId = '', classId, present, confirmedAt, method = 'FACE' } = useLocalSearchParams<{ sessionId: string; classId?: string; present?: string; confirmedAt?: string; method?: AttendanceMethod }>();
+  return <LecturerShell activeKey="history" title="Session detail" back backFallback="/lecturer/history">
+    {classId ? <LocalSessionDetail classId={classId} present={present} confirmedAt={confirmedAt} method={method} /> : <SavedSessionDetail sessionId={sessionId} />}
+  </LecturerShell>;
+}

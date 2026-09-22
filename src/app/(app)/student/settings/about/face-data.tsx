@@ -1,0 +1,2 @@
+import { StudentInformationPage } from '@/student/information-page';
+export default function FaceDataInfo() { return <StudentInformationPage title="Face Data & Privacy" subtitle="Transparent placeholder" sections={[{ title: 'This frontend build', body: 'This Student UI does not capture, process, or transmit face data.' }, { title: 'Institution policy', body: 'Any future biometric attendance capability must provide institution-approved notice, consent, retention, deletion, and support information before use.' }]} />; }

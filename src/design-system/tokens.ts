@@ -15,7 +15,7 @@ export const lightColors = {
   success: '#18794E', warning: '#8A5A00', error: '#B42318', info: '#2869A5',
   attendanceGood: '#18794E', attendanceWarning: '#8A5A00', attendanceLow: '#B42318',
   successSurface: '#E4F4EC', warningSurface: '#FFF2CC', errorSurface: '#FDE8E7', infoSurface: '#E4F0FB',
-  overlay: 'rgba(5, 19, 34, 0.62)', focusRing: '#77A7DB', disabled: '#AEB9C6', skeleton: '#E3E8EF',
+  overlay: 'rgba(5, 19, 34, 0.62)', focusRing: 'transparent', disabled: '#AEB9C6', skeleton: '#E3E8EF',
 } as const;
 
 export const darkColors: ThemeColors = {
@@ -25,7 +25,7 @@ export const darkColors: ThemeColors = {
   success: '#71D3A6', warning: '#F3C969', error: '#FF938C', info: '#8FC0EE',
   attendanceGood: '#71D3A6', attendanceWarning: '#F3C969', attendanceLow: '#FF938C',
   successSurface: '#10241C', warningSurface: '#261F0E', errorSurface: '#291516', infoSurface: '#101C27',
-  overlay: 'rgba(0, 0, 0, 0.78)', focusRing: '#9DC5EE', disabled: '#5F6873', skeleton: '#1C2127',
+  overlay: 'rgba(0, 0, 0, 0.78)', focusRing: 'transparent', disabled: '#5F6873', skeleton: '#1C2127',
 };
 
 export type ThemeColors = { [K in keyof typeof lightColors]: string };

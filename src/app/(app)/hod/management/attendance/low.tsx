@@ -1,0 +1,17 @@
+import { useMemo, useState } from 'react';
+import { router, type Href } from 'expo-router';
+import { Text, View } from 'react-native';
+import { Button } from '@/design-system/components/core';
+import { SegmentedControl } from '@/design-system/components/forms';
+import { spacing, typography } from '@/design-system/tokens';
+import { useRollCallTheme } from '@/design-system/theme-provider';
+import { PageContainer } from '@/shell/app-shell';
+import { HodShell } from '@/hod/components';
+import { FilterChips, ManagementHeader, ManagementRow, ManagementSearch, RelationshipSection } from '@/hod/management-components';
+import { useHodManagement } from '@/hod/management-provider';
+import { useHodOperations } from '@/hod/operations-provider';
+
+export default function LowAttendance() {
+  const { colors } = useRollCallTheme(); const data = useHodManagement(); const operations = useHodOperations(); const [query,setQuery]=useState(''); const [sort,setSort]=useState<'lowest'|'name'>('lowest'); const [filter,setFilter]=useState<'below75'|'below70'>('below75'); const [filterName,setFilterName]=useState(''); const threshold = filter === 'below70' ? 70 : 75; const rows = useMemo(() => data.students.filter((item)=>item.attendance<threshold && `${item.name} ${item.usn}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>sort==='lowest'?a.attendance-b.attendance:a.name.localeCompare(b.name)),[data.students,query,sort,threshold]);
+  return <HodShell activeKey="department" title="Low attendance" subtitle={`${rows.length} students below ${threshold}%`} back backFallback="/hod/management/attendance"><PageContainer width="full"><ManagementHeader title="Students needing attention" description="Department-scoped attendance below the selected requirement." /><ManagementSearch value={query} onChangeText={setQuery} placeholder="Search student or USN" /><FilterChips value={filter} onChange={setFilter} options={[{value:'below75',label:'Below 75%'},{value:'below70',label:'Below 70%'}]} /><View style={{ maxWidth: 280 }}><SegmentedControl value={sort} onChange={setSort} options={[{value:'lowest',label:'Lowest first'},{value:'name',label:'Name'}]} /></View><RelationshipSection title="Attention list">{rows.map((student)=>{const section=data.sections.find((item)=>item.id===student.sectionId);const semester=data.semesters.find((item)=>item.id===student.semesterId);return <ManagementRow key={student.id} title={student.name} detail={`${student.usn} · ${section?.name} · ${semester?.name}`} meta={`${student.attendance}% attendance · Required ${threshold}%`} status="Unassigned" onPress={()=>router.push(`/hod/management/students/${student.id}` as Href)} />;})}</RelationshipSection><View style={{ gap: spacing.sm }}><Text style={[typography.label,{color:colors.textPrimary}]}>Save this filter</Text><View style={{ flexDirection:'row',gap:spacing.sm }}><View style={{flex:1}}><ManagementSearch value={filterName} onChangeText={setFilterName} placeholder="Filter name" /></View><Button label="Save" disabled={!filterName.trim()} onPress={()=>{operations.addSavedFilter(filterName.trim(),'low-attendance',filter);setFilterName('');}} /></View>{operations.savedFilters.filter((item)=>item.kind==='low-attendance').map((item)=><ManagementRow key={item.id} title={item.name} detail={item.value==='below70'?'Below 70%':'Below 75%'} onPress={()=>setFilter(item.value as typeof filter)} actions={<Button label="Remove" variant="text" onPress={()=>operations.removeSavedFilter(item.id)} />} />)}</View></PageContainer></HodShell>;
+}

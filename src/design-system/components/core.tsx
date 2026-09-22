@@ -6,17 +6,19 @@ import { useRollCallTheme } from '../theme-provider';
 type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'text';
 export function Button({ label, variant = 'primary', loading = false, icon, ...props }: PressableProps & { label: string; variant?: ButtonVariant; loading?: boolean; icon?: React.ReactNode }) {
   const { colors } = useRollCallTheme();
+  const [focused, setFocused] = React.useState(false);
   const disabled = props.disabled || loading;
   const background = variant === 'primary' ? colors.primary : variant === 'destructive' ? colors.error : variant === 'secondary' ? colors.surfaceSecondary : 'transparent';
   const foreground = variant === 'primary' || variant === 'destructive' ? colors.textInverse : variant === 'text' ? colors.primary : colors.textPrimary;
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled, busy: loading }} {...props} disabled={disabled} style={(state) => [styles.button, { backgroundColor: background, borderColor: variant === 'secondary' ? colors.border : background, opacity: disabled ? 0.48 : state.pressed ? 0.78 : 1 }, typeof props.style === 'function' ? props.style(state) : props.style]}>
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled, busy: loading }} {...props} onFocus={(event) => { setFocused(true); props.onFocus?.(event); }} onBlur={(event) => { setFocused(false); props.onBlur?.(event); }} disabled={disabled} style={(state) => [styles.button, { backgroundColor: background, borderColor: focused ? colors.focusRing : variant === 'secondary' ? colors.border : background, borderWidth: focused ? 2 : 1, opacity: disabled ? 0.48 : state.pressed ? 0.78 : 1 }, typeof props.style === 'function' ? props.style(state) : props.style]}>
     {loading ? <ActivityIndicator color={foreground} /> : icon}<Text maxFontSizeMultiplier={1.8} style={[typography.label, { color: foreground }]}>{label}</Text>
   </Pressable>;
 }
 
 export function IconButton({ label, children, ...props }: PressableProps & { label: string; children: React.ReactNode }) {
   const { colors } = useRollCallTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} {...props} style={(state) => [{ width: sizing.touchTarget, height: sizing.touchTarget, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', backgroundColor: state.pressed ? colors.surfaceSecondary : 'transparent', opacity: props.disabled ? 0.48 : 1 }, typeof props.style === 'function' ? props.style(state) : props.style]}>{children}</Pressable>;
+  const [focused, setFocused] = React.useState(false);
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} {...props} onFocus={(event) => { setFocused(true); props.onFocus?.(event); }} onBlur={(event) => { setFocused(false); props.onBlur?.(event); }} style={(state) => [{ width: sizing.touchTarget, height: sizing.touchTarget, borderRadius: radii.full, borderWidth: focused ? 2 : 0, borderColor: colors.focusRing, alignItems: 'center', justifyContent: 'center', backgroundColor: state.pressed ? colors.surfaceSecondary : 'transparent', opacity: props.disabled ? 0.48 : 1 }, typeof props.style === 'function' ? props.style(state) : props.style]}>{children}</Pressable>;
 }
 
 export function Card({ children, elevated = false, style }: React.PropsWithChildren<{ elevated?: boolean; style?: ViewStyle }>) {
@@ -26,8 +28,9 @@ export function Card({ children, elevated = false, style }: React.PropsWithChild
 
 export function ListItem({ title, detail, leading, trailing, onPress }: { title: string; detail?: string; leading?: React.ReactNode; trailing?: React.ReactNode; onPress?: () => void }) {
   const { colors } = useRollCallTheme();
+  const [focused, setFocused] = React.useState(false);
   const content = <><View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: spacing.md }}>{leading}<View style={{ flex: 1, gap: spacing.xs }}><Text style={[typography.subheading, { color: colors.textPrimary }]}>{title}</Text>{detail ? <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>{detail}</Text> : null}</View>{trailing}</View></>;
-  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} style={(state) => [styles.listItem, { backgroundColor: state.pressed ? colors.surfaceSecondary : colors.surface, borderColor: colors.borderSubtle }]}>{content}</Pressable> : <View style={[styles.listItem, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>{content}</View>;
+  return onPress ? <Pressable accessibilityRole="button" onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={(state) => [styles.listItem, { backgroundColor: state.pressed ? colors.surfaceSecondary : colors.surface, borderColor: focused ? colors.focusRing : colors.borderSubtle, borderWidth: focused ? 2 : StyleSheet.hairlineWidth }]}>{content}</Pressable> : <View style={[styles.listItem, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>{content}</View>;
 }
 
 export function Avatar({ name, size = 'medium' }: { name: string; size?: 'small' | 'medium' | 'large' }) {

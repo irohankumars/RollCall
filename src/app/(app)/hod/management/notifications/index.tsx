@@ -1,0 +1,8 @@
+import { router, type Href } from 'expo-router';
+import { Button } from '@/design-system/components/core';
+import { PageContainer } from '@/shell/app-shell';
+import { HodShell } from '@/hod/components';
+import { ManagementHeader, ManagementRow, RelationshipSection, SummaryStrip } from '@/hod/management-components';
+import { useHodOperations } from '@/hod/operations-provider';
+
+export default function DepartmentNotifications(){const operations=useHodOperations();return <HodShell activeKey="department" title="Department notifications" subtitle="Audience and delivery status" back backFallback="/hod/management"><PageContainer width="full"><ManagementHeader title="Department notifications" description="Create messages only for audiences in your department." action="Create notification" onAction={()=>router.push('/hod/management/notifications/new' as Href)} /><SummaryStrip items={[{value:operations.notifications.length,label:'Total'},{value:operations.notifications.filter((item)=>item.status==='Sent').length,label:'Sent'},{value:operations.notifications.filter((item)=>item.status==='Draft').length,label:'Drafts'}]} /><RelationshipSection title="History & status">{operations.notifications.map((item)=><ManagementRow key={item.id} title={item.title} detail={`${item.audience} · ${new Date(item.sentAt??item.createdAt).toLocaleString()}`} meta={`${item.category} · ${item.priority} priority`} status={item.status==='Sent'?'Assigned':item.status==='Failed'?'Inactive':'Pending'} onPress={()=>router.push(`/hod/management/notifications/${item.id}` as Href)} actions={item.status==='Draft'?<Button label="Send" variant="text" onPress={()=>operations.sendNotification(item.id)}/>:undefined}/>)}</RelationshipSection></PageContainer></HodShell>;}
