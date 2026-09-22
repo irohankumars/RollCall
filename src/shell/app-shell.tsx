@@ -44,6 +44,12 @@ const navigationIcons: Record<string, { active: IconName; inactive: IconName }> 
   overlays: { active: 'layers', inactive: 'layers-outline' },
   'design-system': { active: 'color-palette', inactive: 'color-palette-outline' },
   protected: { active: 'shield-checkmark', inactive: 'shield-checkmark-outline' },
+  dashboard: { active: 'grid', inactive: 'grid-outline' },
+  people: { active: 'people', inactive: 'people-outline' },
+  academic: { active: 'library', inactive: 'library-outline' },
+  departments: { active: 'business', inactive: 'business-outline' },
+  invitations: { active: 'mail', inactive: 'mail-outline' },
+  workspace: { active: 'briefcase', inactive: 'briefcase-outline' },
 };
 
 function NavigationIcon({ destination, active }: { destination: NavigationDestination; active: boolean }) {

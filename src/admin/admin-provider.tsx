@@ -1,0 +1,111 @@
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { readLocalPreference, writeLocalPreference } from '@/design-system/local-preferences';
+
+export type AdminStatus = 'Active' | 'Inactive' | 'Pending';
+export type Department = { id: string; name: string; code: string; hodId?: string; status: AdminStatus };
+export type PersonRole = 'Admin' | 'HOD' | 'Lecturer' | 'Student';
+export type Person = { id: string; name: string; role: PersonRole; identifier: string; email: string; departmentId?: string; status: AdminStatus; semesterId?: string; batchId?: string; sectionId?: string; program?: string; classTeacherOf?: string };
+export type AcademicYear = { id: string; name: string; period: string; current: boolean; status: AdminStatus };
+export type Semester = { id: string; name: string; academicYearId: string; current: boolean; status: AdminStatus };
+export type Batch = { id: string; name: string; departmentId: string; academicYearId: string; semesterId: string; status: AdminStatus };
+export type Subject = { id: string; name: string; code: string; departmentId: string; academicYearId: string; semesterId: string; batchId: string; credits: number; status: AdminStatus };
+export type Section = { id: string; name: string; departmentId: string; academicYearId: string; semesterId: string; batchId: string; classTeacherId?: string; status: AdminStatus };
+export type Assignment = { id: string; subjectId: string; sectionId: string; lecturerId?: string; active: boolean };
+export type Invitation = { id: string; personId: string; role: PersonRole; departmentId?: string; email: string; sentAt: string; status: 'Pending' | 'Accepted' | 'Expired' | 'Cancelled' };
+export type RecentChange = { id: string; action: string; entity: string; timestamp: string };
+export type SavedFilter = { id: string; name: string; scope: 'people' | 'students' | 'invitations'; value: string };
+
+type Workspace = { id: string; reference: string; name: string; officialEmail: string; phone: string; address: string; website: string; affiliation: string; institutionType: string; status: 'Active' };
+type AdminContextValue = {
+  workspace: Workspace; departments: Department[]; people: Person[]; academicYears: AcademicYear[]; semesters: Semester[]; batches: Batch[]; subjects: Subject[]; sections: Section[]; assignments: Assignment[]; invitations: Invitation[]; recentChanges: RecentChange[];
+  pinned: string[]; recentlyViewed: string[]; savedFilters: SavedFilter[]; lastUpdated: string;
+  updateWorkspace: (value: Workspace) => void; addDepartment: (value: Pick<Department, 'name' | 'code'>) => Department; updateDepartment: (id: string, value: Pick<Department, 'name' | 'code'>) => void;
+  addPerson: (value: Omit<Person, 'id' | 'status'>, invite?: boolean) => Person; updatePerson: (id: string, value: Partial<Person>) => void; togglePeople: (ids: string[]) => void;
+  addAcademicYear: (name: string, period: string) => void; setCurrentYear: (id: string) => void; addSemester: (name: string, yearId: string) => void; toggleSemester: (id: string) => void; addBatch: (value: Omit<Batch, 'id' | 'status'>) => void;
+  addSubject: (value: Omit<Subject, 'id' | 'status'>) => Subject; updateSubject: (id: string, value: Omit<Subject, 'id' | 'status'>) => void; addSection: (value: Omit<Section, 'id' | 'status' | 'classTeacherId'>) => Section; updateSection: (id: string, value: Omit<Section, 'id' | 'status' | 'classTeacherId'>) => void;
+  resendInvitations: (ids: string[]) => void; cancelInvitation: (id: string) => void; recordView: (key: string) => void; togglePin: (key: string) => void; saveFilter: (value: Omit<SavedFilter, 'id'>) => void; renameFilter: (id: string, name: string) => void; removeFilter: (id: string) => void;
+};
+
+const AdminContext = createContext<AdminContextValue | null>(null);
+const now = new Date().toISOString();
+const initialDepartments: Department[] = [
+  { id: 'dept-cse', name: 'Computer Science and Engineering', code: 'CSE', hodId: 'hod-vikram', status: 'Active' },
+  { id: 'dept-ise', name: 'Information Science and Engineering', code: 'ISE', hodId: 'hod-neha', status: 'Active' },
+  { id: 'dept-ece', name: 'Electronics and Communication Engineering', code: 'ECE', status: 'Active' },
+];
+const initialPeople: Person[] = [
+  { id: 'admin-me', name: 'Development Admin', role: 'Admin', identifier: 'ADM-001', email: 'admin@development.local', status: 'Active' },
+  { id: 'hod-vikram', name: 'Dr. Vikram Shah', role: 'HOD', identifier: 'HOD-CSE-01', email: 'hod@development.local', departmentId: 'dept-cse', status: 'Active' },
+  { id: 'hod-neha', name: 'Dr. Neha Menon', role: 'HOD', identifier: 'HOD-ISE-01', email: 'neha.menon@development.local', departmentId: 'dept-ise', status: 'Active' },
+  { id: 'lec-ananya', name: 'Dr. Ananya Rao', role: 'Lecturer', identifier: 'CSE-104', email: 'ananya.rao@development.local', departmentId: 'dept-cse', status: 'Active', classTeacherOf: 'section-cse-7a' },
+  { id: 'lec-rahul', name: 'Prof. Rahul Sen', role: 'Lecturer', identifier: 'ISE-112', email: 'rahul.sen@development.local', departmentId: 'dept-ise', status: 'Active' },
+  { id: 'lec-nikhil', name: 'Prof. Nikhil Kumar', role: 'Lecturer', identifier: 'ECE-118', email: 'nikhil.kumar@development.local', departmentId: 'dept-ece', status: 'Pending' },
+  { id: 'stu-aarav', name: 'Aarav Mehta', role: 'Student', identifier: 'CSE24001', email: 'aarav.mehta@development.local', departmentId: 'dept-cse', program: 'B.E.', semesterId: 'sem-7', batchId: 'batch-cse-2024', sectionId: 'section-cse-7a', status: 'Active' },
+  { id: 'stu-diya', name: 'Diya Sharma', role: 'Student', identifier: 'CSE24002', email: 'diya.sharma@development.local', departmentId: 'dept-cse', program: 'B.E.', semesterId: 'sem-7', batchId: 'batch-cse-2024', sectionId: 'section-cse-7a', status: 'Active' },
+  { id: 'stu-meera', name: 'Meera Nair', role: 'Student', identifier: 'ISE24003', email: 'meera.nair@development.local', departmentId: 'dept-ise', program: 'B.E.', semesterId: 'sem-7', batchId: 'batch-ise-2024', sectionId: 'section-ise-7a', status: 'Active' },
+  { id: 'stu-rohan', name: 'Rohan Gupta', role: 'Student', identifier: 'ECE25004', email: 'rohan.gupta@development.local', departmentId: 'dept-ece', program: 'B.E.', semesterId: 'sem-5', batchId: 'batch-ece-2025', status: 'Active' },
+];
+const initialYears: AcademicYear[] = [{ id: 'ay-2026', name: '2026–27', period: 'July 2026 – June 2027', current: true, status: 'Active' }, { id: 'ay-2025', name: '2025–26', period: 'July 2025 – June 2026', current: false, status: 'Inactive' }];
+const initialSemesters: Semester[] = [{ id: 'sem-7', name: 'Semester 7', academicYearId: 'ay-2026', current: true, status: 'Active' }, { id: 'sem-5', name: 'Semester 5', academicYearId: 'ay-2026', current: true, status: 'Active' }, { id: 'sem-6', name: 'Semester 6', academicYearId: 'ay-2025', current: false, status: 'Inactive' }];
+const initialBatches: Batch[] = [
+  { id: 'batch-cse-2024', name: 'Batch 2024', departmentId: 'dept-cse', academicYearId: 'ay-2026', semesterId: 'sem-7', status: 'Active' },
+  { id: 'batch-ise-2024', name: 'Batch 2024', departmentId: 'dept-ise', academicYearId: 'ay-2026', semesterId: 'sem-7', status: 'Active' },
+  { id: 'batch-ece-2025', name: 'Batch 2025', departmentId: 'dept-ece', academicYearId: 'ay-2026', semesterId: 'sem-5', status: 'Active' },
+];
+const initialSubjects: Subject[] = [
+  { id: 'subject-ml', name: 'Machine Learning', code: 'CS401', departmentId: 'dept-cse', academicYearId: 'ay-2026', semesterId: 'sem-7', batchId: 'batch-cse-2024', credits: 4, status: 'Active' },
+  { id: 'subject-db', name: 'Database Systems', code: 'IS305', departmentId: 'dept-ise', academicYearId: 'ay-2026', semesterId: 'sem-7', batchId: 'batch-ise-2024', credits: 4, status: 'Active' },
+  { id: 'subject-dsp', name: 'Digital Signal Processing', code: 'EC307', departmentId: 'dept-ece', academicYearId: 'ay-2026', semesterId: 'sem-5', batchId: 'batch-ece-2025', credits: 3, status: 'Active' },
+];
+const initialSections: Section[] = [
+  { id: 'section-cse-7a', name: 'CSE 2024 A', departmentId: 'dept-cse', academicYearId: 'ay-2026', semesterId: 'sem-7', batchId: 'batch-cse-2024', classTeacherId: 'lec-ananya', status: 'Active' },
+  { id: 'section-ise-7a', name: 'ISE 2024 A', departmentId: 'dept-ise', academicYearId: 'ay-2026', semesterId: 'sem-7', batchId: 'batch-ise-2024', status: 'Active' },
+  { id: 'section-ece-5a', name: 'ECE 2025 A', departmentId: 'dept-ece', academicYearId: 'ay-2026', semesterId: 'sem-5', batchId: 'batch-ece-2025', status: 'Active' },
+];
+const initialAssignments: Assignment[] = [{ id: 'assign-ml', subjectId: 'subject-ml', sectionId: 'section-cse-7a', lecturerId: 'lec-ananya', active: true }, { id: 'assign-db', subjectId: 'subject-db', sectionId: 'section-ise-7a', lecturerId: 'lec-rahul', active: true }, { id: 'assign-dsp', subjectId: 'subject-dsp', sectionId: 'section-ece-5a', active: true }];
+const initialInvitations: Invitation[] = [{ id: 'invite-nikhil', personId: 'lec-nikhil', role: 'Lecturer', departmentId: 'dept-ece', email: 'nikhil.kumar@development.local', sentAt: now, status: 'Pending' }];
+const initialChanges: RecentChange[] = [
+  { id: 'change-1', action: 'Lecturer invited', entity: 'Prof. Nikhil Kumar', timestamp: now },
+  { id: 'change-2', action: 'Class created', entity: 'ECE 2025 A', timestamp: '2026-09-22T09:42:00.000Z' },
+  { id: 'change-3', action: 'Subject created', entity: 'Digital Signal Processing', timestamp: '2026-09-22T08:42:00.000Z' },
+];
+
+function id(prefix: string) { return `${prefix}-${Date.now().toString(36)}`; }
+function readList(value: string | null): string[] { try { const parsed = JSON.parse(value ?? '[]'); return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []; } catch { return []; } }
+function readFilters(value: string | null): SavedFilter[] { try { const parsed = JSON.parse(value ?? '[]'); return Array.isArray(parsed) ? parsed : []; } catch { return []; } }
+
+export function AdminProvider({ children }: React.PropsWithChildren) {
+  const [workspace, setWorkspace] = useState<Workspace>({ id: 'college-development', reference: 'RC-DEV-001', name: 'Development College of Engineering', officialEmail: 'office@development.local', phone: '+91 80 4000 2026', address: '12 University Road, Bengaluru, Karnataka 560001', website: 'https://development.local', affiliation: 'Visvesvaraya Technological University', institutionType: 'Autonomous engineering college', status: 'Active' });
+  const [departments, setDepartments] = useState(initialDepartments); const [people, setPeople] = useState(initialPeople); const [academicYears, setAcademicYears] = useState(initialYears); const [semesters, setSemesters] = useState(initialSemesters); const [batches, setBatches] = useState(initialBatches); const [subjects, setSubjects] = useState(initialSubjects); const [sections, setSections] = useState(initialSections); const [assignments] = useState(initialAssignments); const [invitations, setInvitations] = useState(initialInvitations);
+  const [recentChanges, setRecentChanges] = useState<RecentChange[]>(initialChanges);
+  const [pinned, setPinned] = useState<string[]>([]); const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]); const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]); const [lastUpdated, setLastUpdated] = useState(now);
+  useEffect(() => { void Promise.all([readLocalPreference('rollcall.admin.pinned'), readLocalPreference('rollcall.admin.recent'), readLocalPreference('rollcall.admin.filters')]).then(([pins, recent, filters]) => { setPinned(readList(pins)); setRecentlyViewed(readList(recent)); setSavedFilters(readFilters(filters)); }); }, []);
+  const changed = useCallback((action: string, entity: string) => { const timestamp = new Date().toISOString(); setLastUpdated(timestamp); setRecentChanges((current) => [{ id: id('change'), action, entity, timestamp }, ...current].slice(0, 8)); }, []);
+  const updateWorkspace = useCallback((value: Workspace) => { setWorkspace(value); changed('Workspace updated', value.name); }, [changed]);
+  const addDepartment = useCallback((value: Pick<Department, 'name' | 'code'>) => { if (departments.some((item) => item.code.toLowerCase() === value.code.trim().toLowerCase())) throw new Error('A department with this code already exists.'); const item = { ...value, name: value.name.trim(), code: value.code.trim().toUpperCase(), id: id('dept'), status: 'Active' as const }; setDepartments((current) => [...current, item]); changed('Department created', item.name); return item; }, [changed, departments]);
+  const updateDepartment = useCallback((departmentId: string, value: Pick<Department, 'name' | 'code'>) => { if (departments.some((item) => item.id !== departmentId && item.code.toLowerCase() === value.code.trim().toLowerCase())) throw new Error('A department with this code already exists.'); setDepartments((current) => current.map((item) => item.id === departmentId ? { ...item, ...value, code: value.code.toUpperCase() } : item)); changed('Department updated', value.name); }, [changed, departments]);
+  const addPerson = useCallback((value: Omit<Person, 'id' | 'status'>, invite = false) => { if (people.some((item) => item.identifier.toLowerCase() === value.identifier.trim().toLowerCase())) throw new Error('This identifier already belongs to a person in the workspace.'); if (people.some((item) => item.email.toLowerCase() === value.email.trim().toLowerCase())) throw new Error('This email already belongs to a person in the workspace.'); const item = { ...value, id: id(value.role.toLowerCase()), status: invite ? 'Pending' as const : 'Active' as const }; setPeople((current) => [...current, item]); if (value.role === 'HOD' && value.departmentId) setDepartments((current) => current.map((department) => department.id === value.departmentId ? { ...department, hodId: item.id } : department)); if (invite) setInvitations((current) => [{ id: id('invite'), personId: item.id, role: item.role, departmentId: item.departmentId, email: item.email, sentAt: new Date().toISOString(), status: 'Pending' }, ...current]); changed(invite ? `${item.role} invited` : `${item.role} added`, item.name); return item; }, [changed, people]);
+  const updatePerson = useCallback((personId: string, value: Partial<Person>) => { setPeople((current) => current.map((item) => item.id === personId ? { ...item, ...value } : item)); changed('Person updated', people.find((item) => item.id === personId)?.name ?? 'Person'); }, [changed, people]);
+  const togglePeople = useCallback((ids: string[]) => { setPeople((current) => current.map((item) => ids.includes(item.id) && item.role !== 'Admin' ? { ...item, status: item.status === 'Active' ? 'Inactive' : 'Active' } : item)); changed('Account status changed', `${ids.length} ${ids.length === 1 ? 'person' : 'people'}`); }, [changed]);
+  const addAcademicYear = useCallback((name: string, period: string) => { if (academicYears.some((item) => item.name.toLowerCase() === name.trim().toLowerCase())) throw new Error('This academic year already exists.'); setAcademicYears((current) => [...current, { id: id('ay'), name, period, current: false, status: 'Inactive' }]); changed('Academic year created', name); }, [academicYears, changed]);
+  const setCurrentYear = useCallback((yearId: string) => { setAcademicYears((current) => current.map((item) => ({ ...item, current: item.id === yearId, status: item.id === yearId ? 'Active' : item.status }))); changed('Academic year activated', academicYears.find((item) => item.id === yearId)?.name ?? 'Academic year'); }, [academicYears, changed]);
+  const addSemester = useCallback((name: string, yearId: string) => { if (!academicYears.some((item) => item.id === yearId)) throw new Error('Choose a valid academic year.'); setSemesters((current) => [...current, { id: id('sem'), name, academicYearId: yearId, current: false, status: 'Active' }]); changed('Semester created', name); }, [academicYears, changed]);
+  const toggleSemester = useCallback((semesterId: string) => { setSemesters((current) => current.map((item) => item.id === semesterId ? { ...item, status: item.status === 'Active' ? 'Inactive' : 'Active' } : item)); changed('Semester status changed', semesters.find((item) => item.id === semesterId)?.name ?? 'Semester'); }, [changed, semesters]);
+  const addBatch = useCallback((value: Omit<Batch, 'id' | 'status'>) => { if (!departments.some((item) => item.id === value.departmentId) || !academicYears.some((item) => item.id === value.academicYearId) || !semesters.some((item) => item.id === value.semesterId)) throw new Error('Choose a valid academic context.'); setBatches((current) => [...current, { ...value, id: id('batch'), status: 'Active' }]); changed('Batch created', value.name); }, [academicYears, changed, departments, semesters]);
+  const addSubject = useCallback((value: Omit<Subject, 'id' | 'status'>) => { if (subjects.some((item) => item.code.toLowerCase() === value.code.trim().toLowerCase() && item.departmentId === value.departmentId && item.semesterId === value.semesterId)) throw new Error('This subject code already exists in the selected context.'); if (!departments.some((item) => item.id === value.departmentId) || !semesters.some((item) => item.id === value.semesterId) || !batches.some((item) => item.id === value.batchId)) throw new Error('Choose a valid academic context.'); const item = { ...value, id: id('subject'), code: value.code.toUpperCase(), status: 'Active' as const }; setSubjects((current) => [...current, item]); changed('Subject created', item.name); return item; }, [batches, changed, departments, semesters, subjects]);
+  const updateSubject = useCallback((subjectId: string, value: Omit<Subject, 'id' | 'status'>) => { setSubjects((current) => current.map((item) => item.id === subjectId ? { ...item, ...value, code: value.code.toUpperCase() } : item)); changed('Subject updated', value.name); }, [changed]);
+  const addSection = useCallback((value: Omit<Section, 'id' | 'status' | 'classTeacherId'>) => { if (sections.some((item) => item.name.toLowerCase() === value.name.trim().toLowerCase() && item.departmentId === value.departmentId && item.semesterId === value.semesterId)) throw new Error('This class already exists in the selected context.'); if (!departments.some((item) => item.id === value.departmentId) || !semesters.some((item) => item.id === value.semesterId) || !batches.some((item) => item.id === value.batchId)) throw new Error('Choose a valid academic context.'); const item = { ...value, id: id('section'), status: 'Active' as const }; setSections((current) => [...current, item]); changed('Class created', item.name); return item; }, [batches, changed, departments, sections, semesters]);
+  const updateSection = useCallback((sectionId: string, value: Omit<Section, 'id' | 'status' | 'classTeacherId'>) => { setSections((current) => current.map((item) => item.id === sectionId ? { ...item, ...value } : item)); changed('Class updated', value.name); }, [changed]);
+  const resendInvitations = useCallback((ids: string[]) => { const sentAt = new Date().toISOString(); setInvitations((current) => current.map((item) => ids.includes(item.id) && item.status === 'Pending' ? { ...item, sentAt } : item)); changed('Invitation resent', `${ids.length} ${ids.length === 1 ? 'invitation' : 'invitations'}`); }, [changed]);
+  const cancelInvitation = useCallback((invitationId: string) => { setInvitations((current) => current.map((item) => item.id === invitationId ? { ...item, status: 'Cancelled' } : item)); changed('Invitation cancelled', invitations.find((item) => item.id === invitationId)?.email ?? 'Invitation'); }, [changed, invitations]);
+  const recordView = useCallback((key: string) => setRecentlyViewed((current) => { const next = [key, ...current.filter((item) => item !== key)].slice(0, 6); void writeLocalPreference('rollcall.admin.recent', JSON.stringify(next)); return next; }), []);
+  const togglePin = useCallback((key: string) => setPinned((current) => { const next = current.includes(key) ? current.filter((item) => item !== key) : [key, ...current].slice(0, 8); void writeLocalPreference('rollcall.admin.pinned', JSON.stringify(next)); return next; }), []);
+  const persistFilters = useCallback((next: SavedFilter[]) => { setSavedFilters(next); void writeLocalPreference('rollcall.admin.filters', JSON.stringify(next)); }, []);
+  const saveFilter = useCallback((value: Omit<SavedFilter, 'id'>) => persistFilters([...savedFilters, { ...value, id: id('filter') }]), [persistFilters, savedFilters]);
+  const renameFilter = useCallback((filterId: string, name: string) => persistFilters(savedFilters.map((item) => item.id === filterId ? { ...item, name } : item)), [persistFilters, savedFilters]);
+  const removeFilter = useCallback((filterId: string) => persistFilters(savedFilters.filter((item) => item.id !== filterId)), [persistFilters, savedFilters]);
+  const value = useMemo<AdminContextValue>(() => ({ workspace, departments, people, academicYears, semesters, batches, subjects, sections, assignments, invitations, recentChanges, pinned, recentlyViewed, savedFilters, lastUpdated, updateWorkspace, addDepartment, updateDepartment, addPerson, updatePerson, togglePeople, addAcademicYear, setCurrentYear, addSemester, toggleSemester, addBatch, addSubject, updateSubject, addSection, updateSection, resendInvitations, cancelInvitation, recordView, togglePin, saveFilter, renameFilter, removeFilter }), [workspace, departments, people, academicYears, semesters, batches, subjects, sections, assignments, invitations, recentChanges, pinned, recentlyViewed, savedFilters, lastUpdated, updateWorkspace, addDepartment, updateDepartment, addPerson, updatePerson, togglePeople, addAcademicYear, setCurrentYear, addSemester, toggleSemester, addBatch, addSubject, updateSubject, addSection, updateSection, resendInvitations, cancelInvitation, recordView, togglePin, saveFilter, renameFilter, removeFilter]);
+  return <AdminContext value={value}>{children}</AdminContext>;
+}
+
+export function useAdmin() { const value = React.use(AdminContext); if (!value) throw new Error('useAdmin must be used within AdminProvider'); return value; }
