@@ -1,5 +1,7 @@
 import { AuthApiError, type AuthSession, type AuthenticatedUser } from './types';
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:4000';
+const API_URL = (process.env.EXPO_PUBLIC_API_URL
+  ?? (process.env.NODE_ENV === 'production' ? 'https://rollcall-p7ci.onrender.com' : 'http://127.0.0.1:4000'))
+  .replace(/\/+$/, '');
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}) {
   let response: Response;

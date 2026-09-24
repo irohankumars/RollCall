@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: rollcall
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node src/server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.20.1
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://roll-call-three.vercel.app
+      - key: ONBOARDING_BASE_URL
+        value: https://roll-call-three.vercel.app/activate
+      - key: DATABASE_PATH
+        value: ./data/rollcall.db
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PAYMENT_WEBHOOK_SECRET
+        generateValue: true
