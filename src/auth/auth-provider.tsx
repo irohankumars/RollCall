@@ -3,7 +3,7 @@ import { authClient } from './auth-client';
 import { clearStoredToken, getStoredToken, storeToken } from './token-storage';
 import { AuthApiError, type AuthSession, type AuthStatus } from './types';
 
-type AuthValue = { status: AuthStatus; session: AuthSession | null; error: AuthApiError | null; login: (identifier: string, password: string) => Promise<void>; logout: () => Promise<void>; clearError: () => void };
+type AuthValue = { status: AuthStatus; session: AuthSession | null; error: AuthApiError | null; login: (identifier: string, password: string) => Promise<void>; acceptSession: (session: AuthSession) => Promise<void>; logout: () => Promise<void>; clearError: () => void };
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: React.PropsWithChildren) {
@@ -24,6 +24,7 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       setStatus('unauthenticated');
     }
   };
-  return <AuthContext value={{ status, session, error, login, logout, clearError: () => setError(null) }}>{children}</AuthContext>;
+  const acceptSession = async (next: AuthSession) => { await storeToken(next.token); setSession(next); setError(null); setStatus('authenticated'); };
+  return <AuthContext value={{ status, session, error, login, acceptSession, logout, clearError: () => setError(null) }}>{children}</AuthContext>;
 }
 export function useAuth() { const value = React.use(AuthContext); if (!value) throw new Error('useAuth must be used within AuthProvider'); return value; }

@@ -13,6 +13,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}) {
 }
 export const authClient = {
   login(loginIdentifier: string, password: string) { return apiRequest<AuthSession>('/api/auth/login', { method: 'POST', body: JSON.stringify({ loginIdentifier, password }) }); },
+  superAdminLogin(loginIdentifier: string, password: string) { return apiRequest<AuthSession>('/api/auth/login', { method: 'POST', body: JSON.stringify({ loginIdentifier, password, portal: 'SUPER_ADMIN' }) }); },
   async restore(token: string) { const data = await apiRequest<{ expiresAt: string; user: AuthenticatedUser }>('/api/auth/me', { headers: { authorization: `Bearer ${token}` } }); return { ...data, token }; },
   logout(token: string) { return apiRequest<{ loggedOut: true }>('/api/auth/logout', { method: 'POST', headers: { authorization: `Bearer ${token}` } }); },
 };
