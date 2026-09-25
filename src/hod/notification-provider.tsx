@@ -1,5 +1,6 @@
-import React, { createContext, useMemo, useState } from 'react';
+import React, { createContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/auth/auth-provider';
+import { timetableClient } from '@/timetable/client';
 import { hodAccessFor } from './access';
 
 export type NotificationCategory = 'ALL' | 'ATTENDANCE' | 'CLASS' | 'SYSTEM';
@@ -33,6 +34,7 @@ export function HodNotificationProvider({ children }: React.PropsWithChildren) {
   const { session } = useAuth();
   const access = hodAccessFor(session?.user);
   const [notifications, setNotifications] = useState(() => initialNotifications.filter((item) => access.isClassTeacher || item.related !== 'Class Teacher'));
+  useEffect(() => { if (!session?.token) return; let active = true; void timetableClient.fetch(session.token).then((data) => { if (!active) return; const timetableItems: LecturerNotification[] = data.notifications.map((item) => ({ id: item.id, category: 'CLASS', title: item.title, message: item.message, related: 'Timetable', timestamp: new Date(item.createdAt).toLocaleString(), unread: !item.readAt })); setNotifications((current) => [...timetableItems, ...current.filter((item) => !timetableItems.some((next) => next.id === item.id))]); }).catch(() => undefined); return () => { active = false; }; }, [session?.token]);
   const value = useMemo<NotificationValue>(() => ({
     notifications,
     unreadCount: notifications.filter((item) => item.unread).length,

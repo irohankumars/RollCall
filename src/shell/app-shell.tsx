@@ -50,6 +50,13 @@ const navigationIcons: Record<string, { active: IconName; inactive: IconName }> 
   departments: { active: 'business', inactive: 'business-outline' },
   invitations: { active: 'mail', inactive: 'mail-outline' },
   workspace: { active: 'briefcase', inactive: 'briefcase-outline' },
+  applications: { active: 'clipboard', inactive: 'clipboard-outline' },
+  colleges: { active: 'business', inactive: 'business-outline' },
+  payments: { active: 'card', inactive: 'card-outline' },
+  search: { active: 'search', inactive: 'search-outline' },
+  settings: { active: 'settings', inactive: 'settings-outline' },
+  health: { active: 'pulse', inactive: 'pulse-outline' },
+  support: { active: 'help-buoy', inactive: 'help-buoy-outline' },
 };
 
 function NavigationIcon({ destination, active }: { destination: NavigationDestination; active: boolean }) {

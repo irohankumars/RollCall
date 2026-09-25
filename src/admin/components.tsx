@@ -41,6 +41,11 @@ export function AdminOverlays() {
       <UtilityMenuRow icon="book-outline" title="Add Subject" onPress={() => closeAndGo('/admin/subjects/new', 'quick')} />
       <UtilityMenuRow icon="school-outline" title="Create Class" onPress={() => closeAndGo('/admin/classes/new', 'quick')} />
       <UtilityMenuRow icon="mail-outline" title="View Invitations" onPress={() => closeAndGo('/admin/invitations', 'quick')} />
+      <UtilityMenuRow icon="checkmark-done-outline" title="View Attendance" onPress={() => closeAndGo('/admin/attendance', 'quick')} />
+      <UtilityMenuRow icon="alert-circle-outline" title="Review Attendance Issues" onPress={() => closeAndGo('/admin/attendance/issues', 'quick')} />
+      <UtilityMenuRow icon="calendar-outline" title="View Schedule" onPress={() => closeAndGo('/admin/schedule', 'quick')} />
+      <UtilityMenuRow icon="document-text-outline" title="View Reports" onPress={() => closeAndGo('/admin/reports', 'quick')} />
+      <UtilityMenuRow icon="notifications-outline" title="Create Notification" onPress={() => closeAndGo('/admin/notifications/new', 'quick')} />
     </AdaptiveUtilityMenu>
     <AdaptiveUtilityMenu visible={utilities.accountMenuOpen} title="Account" onDismiss={utilities.closeAccountMenu}>
       <UtilityMenuRow icon="person-circle-outline" title="Profile" detail={name} onPress={() => closeAndGo('/admin/profile', 'account')} />

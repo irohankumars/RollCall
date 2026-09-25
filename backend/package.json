@@ -10,6 +10,7 @@
     "start": "node src/server.mjs",
     "dev": "node --env-file=.env --watch src/server.mjs",
     "seed": "node --env-file=.env scripts/seed-development.mjs",
+    "seed:onboarding": "node --env-file=.env scripts/seed-onboarding.mjs",
     "test": "node --test"
   },
   "dependencies": {

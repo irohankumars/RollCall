@@ -1,2 +1,2 @@
-import { ScheduleForm } from '@/hod/schedule-form';
-export default function CreateSchedule() { return <ScheduleForm />; }
+import {TimetableEntryEditor} from '@/timetable/management';
+export default function NewTimetableEntry(){return <TimetableEntryEditor manager="hod"/>;}

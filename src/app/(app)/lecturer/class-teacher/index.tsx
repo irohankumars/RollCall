@@ -42,7 +42,7 @@ export default function ClassTeacherDashboard() {
         <View style={{ paddingVertical: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.borderSubtle, gap: spacing.lg }}><SectionHeading title="Today&apos;s attendance" /><DailyClassTotals sessions={sessions} /></View>
         <View style={{ gap: spacing.sm }}><SectionHeading title="Class schedule" />{sessions.map((item) => <DailySessionRow key={item.id} item={item} students={students} />)}</View>
         <AlertBanner title="Daily summary is ready" message="Attendance data is available for 4 of 5 classes. One class was not conducted, and the daily summary can still be prepared." tone="info" />
-        <Button label="View daily summary" onPress={() => router.push('/lecturer/class-teacher/daily-summary' as Href)} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}><Button label="Open class timetable" onPress={() => router.push('/lecturer/class-teacher/timetable' as Href)} /><Button label="View daily summary" variant="secondary" onPress={() => router.push('/lecturer/class-teacher/daily-summary' as Href)} /></View>
       </> : null}
     </PageContainer>
   </LecturerShell>;

@@ -1,0 +1,14 @@
+export type TimetableEntryType='CLASS'|'LAB'|'BREAK'|'LUNCH'|'REMEDIAL'|'ACTIVITY'|'PROJECT'|'SPECIAL';
+export type TimetablePresentationStatus='Normal'|'Changed'|'Substitution'|'Cancelled'|'Special';
+export type TimetableSection={id:string;departmentId:string;academicYear:string;semester:string;batch:string;name:string;room?:string|null};
+export type TimetableSlot={id:string;label:string;startTime:string;endTime:string;slotOrder:number;kind:'TEACHING'|'BREAK'|'LUNCH'};
+export type TimetableEntry={id:string;sectionId:string;dayOfWeek:number;day?:string;date?:string;startTime:string;endTime:string;subjectCode?:string|null;subjectName:string;lecturerId?:string|null;lecturerName?:string|null;room?:string|null;entryType:TimetableEntryType;displayLabel?:string|null;status?:string;updatedAt?:string;presentationStatus?:TimetablePresentationStatus;overrideId?:string;note?:string|null};
+export type TimetableOverrideStatus='DRAFT'|'PUBLISHED'|'CANCELLED'|'REVERTED'|'EXPIRED';
+export type TimetableChangeKind='CHANGE'|'CANCELLED'|'SPECIAL'|'RESCHEDULED';
+export type TimetableOverride={id:string;sectionId:string;baseEntryId?:string|null;date:string;changeKind:TimetableChangeKind;startTime?:string|null;endTime?:string|null;subjectCode?:string|null;subjectName?:string|null;lecturerId?:string|null;lecturerName?:string|null;room?:string|null;entryType?:TimetableEntryType|null;note?:string|null;status:TimetableOverrideStatus;original?:TimetableEntry|null;createdBy:string;createdByRole:string;updatedAt:string;publishedAt?:string|null;revertedAt?:string|null;notificationCount?:number};
+export type TimetableHistoryItem={id:string;entityType:string;entityId:string;action:string;oldValue?:unknown;newValue?:unknown;changedBy:string;role:string;at:string};
+export type TimetableNotification={id:string;title:string;message:string;createdAt:string;readAt?:string|null};
+export type TimetableLecturer={id:string;name:string;role:'HOD'|'LECTURER'};
+export type TimetableData={date?:string;sections:TimetableSection[];selectedSectionId?:string;slots:TimetableSlot[];entries:TimetableEntry[];overrides:TimetableOverride[];effectiveEntries:TimetableEntry[];lecturers:TimetableLecturer[];history:TimetableHistoryItem[];notifications:TimetableNotification[];permissions:{manageOfficial:boolean;manageOverrides:boolean;isClassTeacher:boolean}};
+export type TimetableEntryInput={sectionId:string;dayOfWeek:number;startTime:string;endTime:string;subjectCode?:string;subjectName:string;lecturerId?:string;room?:string;entryType:TimetableEntryType;displayLabel?:string};
+export type TimetableOverrideInput={sectionId:string;baseEntryId?:string;date:string;changeKind:TimetableChangeKind;startTime?:string;endTime?:string;subjectCode?:string;subjectName?:string;lecturerId?:string;room?:string;entryType?:TimetableEntryType;note?:string};

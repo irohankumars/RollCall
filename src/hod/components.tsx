@@ -15,7 +15,7 @@ import { useHodUtilities } from './utility-provider';
 import { hodAccessFor } from './access';
 import { useHodNotifications } from './notification-provider';
 
-function hodNavigation(isClassTeacher: boolean, unreadCount: number) { return { primary: [{ key: 'today', label: 'Today', href: '/hod' }, { key: 'classes', label: 'Classes', href: '/hod/classes' }, { key: 'department', label: 'Department', href: '/hod/management' }, ...(isClassTeacher ? [{ key: 'class-teacher', label: 'My class', href: '/hod/class-teacher' }] : []), { key: 'notifications', label: 'Notifications', href: '/hod/notifications', badge: unreadCount || undefined }], secondary: [{ key: 'history', label: 'Attendance history', href: '/hod/history' }, { key: 'account', label: 'Settings', href: '/hod/settings' }] } as const; }
+function hodNavigation(isClassTeacher: boolean, unreadCount: number) { return { primary: [{ key: 'today', label: 'Today', href: '/hod' }, { key: 'classes', label: 'Classes', href: '/hod/classes' }, { key: 'department', label: 'Department', href: '/hod/management' }, { key: 'timetable', label: 'Timetable', href: '/hod/management/schedule' }, ...(isClassTeacher ? [{ key: 'class-teacher', label: 'My class', href: '/hod/class-teacher' }] : []), { key: 'notifications', label: 'Notifications', href: '/hod/notifications', badge: unreadCount || undefined }], secondary: [{ key: 'history', label: 'Attendance history', href: '/hod/history' }, { key: 'account', label: 'Settings', href: '/hod/settings' }] } as const; }
 
 function AccountAction({ name, onPress }: { name: string; onPress: () => void }) {
   const { colors } = useRollCallTheme(); const { isExpanded } = useResponsive(); const [focused, setFocused] = React.useState(false);

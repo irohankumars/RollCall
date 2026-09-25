@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { readLocalPreference, writeLocalPreference } from '@/design-system/local-preferences';
+import { useAuth } from '@/auth/auth-provider';
 
 export type AdminStatus = 'Active' | 'Inactive' | 'Pending';
 export type Department = { id: string; name: string; code: string; hodId?: string; status: AdminStatus };
@@ -13,7 +14,7 @@ export type Section = { id: string; name: string; departmentId: string; academic
 export type Assignment = { id: string; subjectId: string; sectionId: string; lecturerId?: string; active: boolean };
 export type Invitation = { id: string; personId: string; role: PersonRole; departmentId?: string; email: string; sentAt: string; status: 'Pending' | 'Accepted' | 'Expired' | 'Cancelled' };
 export type RecentChange = { id: string; action: string; entity: string; timestamp: string };
-export type SavedFilter = { id: string; name: string; scope: 'people' | 'students' | 'invitations'; value: string };
+export type SavedFilter = { id: string; name: string; scope: 'people' | 'students' | 'invitations' | 'attendance' | 'schedule' | 'reports'; value: string };
 
 type Workspace = { id: string; reference: string; name: string; officialEmail: string; phone: string; address: string; website: string; affiliation: string; institutionType: string; status: 'Active' };
 type AdminContextValue = {
@@ -75,8 +76,10 @@ function readList(value: string | null): string[] { try { const parsed = JSON.pa
 function readFilters(value: string | null): SavedFilter[] { try { const parsed = JSON.parse(value ?? '[]'); return Array.isArray(parsed) ? parsed : []; } catch { return []; } }
 
 export function AdminProvider({ children }: React.PropsWithChildren) {
-  const [workspace, setWorkspace] = useState<Workspace>({ id: 'college-development', reference: 'RC-DEV-001', name: 'Development College of Engineering', officialEmail: 'office@development.local', phone: '+91 80 4000 2026', address: '12 University Road, Bengaluru, Karnataka 560001', website: 'https://development.local', affiliation: 'Visvesvaraya Technological University', institutionType: 'Autonomous engineering college', status: 'Active' });
-  const [departments, setDepartments] = useState(initialDepartments); const [people, setPeople] = useState(initialPeople); const [academicYears, setAcademicYears] = useState(initialYears); const [semesters, setSemesters] = useState(initialSemesters); const [batches, setBatches] = useState(initialBatches); const [subjects, setSubjects] = useState(initialSubjects); const [sections, setSections] = useState(initialSections); const [assignments] = useState(initialAssignments); const [invitations, setInvitations] = useState(initialInvitations);
+  const { session } = useAuth();
+  const activeWorkspace=session?.user.workspace; const seeded=activeWorkspace?.id==='workspace-college-development';
+  const [workspace, setWorkspace] = useState<Workspace>(()=>({ id: activeWorkspace?.id??'college-development', reference: activeWorkspace?.id??'RC-DEV-001', name: activeWorkspace?.name??'Development College of Engineering', officialEmail: session?.user.loginIdentifier??'office@development.local', phone: seeded?'+91 80 4000 2026':'', address: seeded?'12 University Road, Bengaluru, Karnataka 560001':'', website: seeded?'https://development.local':'', affiliation: seeded?'Visvesvaraya Technological University':'', institutionType: seeded?'Autonomous engineering college':'', status: 'Active' }));
+  const [departments, setDepartments] = useState(seeded?initialDepartments:[]); const [people, setPeople] = useState<Person[]>(seeded?initialPeople:session?[{id:session.user.id,name:session.user.name,role:'Admin',identifier:session.user.loginIdentifier,email:session.user.loginIdentifier,status:'Active'}]:[]); const [academicYears, setAcademicYears] = useState(seeded?initialYears:[]); const [semesters, setSemesters] = useState(seeded?initialSemesters:[]); const [batches, setBatches] = useState(seeded?initialBatches:[]); const [subjects, setSubjects] = useState(seeded?initialSubjects:[]); const [sections, setSections] = useState(seeded?initialSections:[]); const [assignments] = useState(seeded?initialAssignments:[]); const [invitations, setInvitations] = useState(seeded?initialInvitations:[]);
   const [recentChanges, setRecentChanges] = useState<RecentChange[]>(initialChanges);
   const [pinned, setPinned] = useState<string[]>([]); const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]); const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]); const [lastUpdated, setLastUpdated] = useState(now);
   useEffect(() => { void Promise.all([readLocalPreference('rollcall.admin.pinned'), readLocalPreference('rollcall.admin.recent'), readLocalPreference('rollcall.admin.filters')]).then(([pins, recent, filters]) => { setPinned(readList(pins)); setRecentlyViewed(readList(recent)); setSavedFilters(readFilters(filters)); }); }, []);
@@ -98,7 +101,7 @@ export function AdminProvider({ children }: React.PropsWithChildren) {
   const updateSection = useCallback((sectionId: string, value: Omit<Section, 'id' | 'status' | 'classTeacherId'>) => { setSections((current) => current.map((item) => item.id === sectionId ? { ...item, ...value } : item)); changed('Class updated', value.name); }, [changed]);
   const resendInvitations = useCallback((ids: string[]) => { const sentAt = new Date().toISOString(); setInvitations((current) => current.map((item) => ids.includes(item.id) && item.status === 'Pending' ? { ...item, sentAt } : item)); changed('Invitation resent', `${ids.length} ${ids.length === 1 ? 'invitation' : 'invitations'}`); }, [changed]);
   const cancelInvitation = useCallback((invitationId: string) => { setInvitations((current) => current.map((item) => item.id === invitationId ? { ...item, status: 'Cancelled' } : item)); changed('Invitation cancelled', invitations.find((item) => item.id === invitationId)?.email ?? 'Invitation'); }, [changed, invitations]);
-  const recordView = useCallback((key: string) => setRecentlyViewed((current) => { const next = [key, ...current.filter((item) => item !== key)].slice(0, 6); void writeLocalPreference('rollcall.admin.recent', JSON.stringify(next)); return next; }), []);
+  const recordView = useCallback((key: string) => setRecentlyViewed((current) => { if (current[0] === key) return current; const next = [key, ...current.filter((item) => item !== key)].slice(0, 6); void writeLocalPreference('rollcall.admin.recent', JSON.stringify(next)); return next; }), []);
   const togglePin = useCallback((key: string) => setPinned((current) => { const next = current.includes(key) ? current.filter((item) => item !== key) : [key, ...current].slice(0, 8); void writeLocalPreference('rollcall.admin.pinned', JSON.stringify(next)); return next; }), []);
   const persistFilters = useCallback((next: SavedFilter[]) => { setSavedFilters(next); void writeLocalPreference('rollcall.admin.filters', JSON.stringify(next)); }, []);
   const saveFilter = useCallback((value: Omit<SavedFilter, 'id'>) => persistFilters([...savedFilters, { ...value, id: id('filter') }]), [persistFilters, savedFilters]);

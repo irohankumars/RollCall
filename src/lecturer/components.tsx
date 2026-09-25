@@ -15,7 +15,7 @@ import { useLecturerUtilities } from './utility-provider';
 import { lecturerAccessFor } from './access';
 import { useLecturerNotifications } from './notification-provider';
 
-function lecturerNavigation(isClassTeacher: boolean, unreadCount: number) { return { primary: [{ key: 'today', label: 'Today', href: '/lecturer' }, { key: 'classes', label: 'Classes', href: '/lecturer/classes' }, ...(isClassTeacher ? [{ key: 'class-teacher', label: 'My class', href: '/lecturer/class-teacher' }] : []), { key: 'history', label: 'History', href: '/lecturer/history' }, { key: 'notifications', label: 'Notifications', href: '/lecturer/notifications', badge: unreadCount || undefined }] } as const; }
+function lecturerNavigation(isClassTeacher: boolean, unreadCount: number) { return { primary: [{ key: 'today', label: 'Today', href: '/lecturer' }, { key: 'classes', label: 'Classes', href: '/lecturer/classes' }, { key: 'schedule', label: 'Timetable', href: '/lecturer/schedule' }, ...(isClassTeacher ? [{ key: 'class-teacher', label: 'My class', href: '/lecturer/class-teacher' }] : []), { key: 'history', label: 'History', href: '/lecturer/history' }, { key: 'notifications', label: 'Notifications', href: '/lecturer/notifications', badge: unreadCount || undefined }] } as const; }
 
 function AccountAction({ name, onPress }: { name: string; onPress: () => void }) {
   const { colors } = useRollCallTheme(); const { isExpanded } = useResponsive(); const [focused, setFocused] = React.useState(false);
