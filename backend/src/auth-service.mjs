@@ -12,9 +12,11 @@ export function createAuthService(db, config) {
   const revoke = db.prepare('UPDATE sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL');
 
   return {
-    async login(input) {
+    async login(input, portal = 'STANDARD') {
       const user = findUser.get(input.loginIdentifier); const valid = user ? await verifyPassword(input.password, user.password_hash) : false;
       if (!valid) throw new AppError(401, 'INVALID_CREDENTIALS', 'The login identifier or password is incorrect.');
+      if (portal === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') throw new AppError(403, 'SUPER_ADMIN_REQUIRED', 'This account cannot access the Super Admin console.');
+      if (portal !== 'SUPER_ADMIN' && user.role === 'SUPER_ADMIN') throw new AppError(403, 'USE_SUPER_ADMIN_PORTAL', 'Use the dedicated Super Admin sign-in page.');
       if (user.status !== 'ACTIVE' || (user.college_id && user.college_status !== 'ACTIVE')) throw new AppError(403, 'ACCOUNT_DISABLED', 'This account is disabled. Contact your administrator.');
       const token = randomBytes(32).toString('base64url'); const createdAt = new Date(); const expiresAt = new Date(createdAt.getTime() + config.sessionTtlSeconds * 1000);
       createSessionRow.run(randomUUID(), user.id, tokenHash(token, config.sessionSecret), expiresAt.toISOString(), createdAt.toISOString());

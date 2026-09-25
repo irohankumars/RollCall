@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { SupportDetailPage } from '@/super-admin/operations-pages';export default function Page(){const{supportId}=useLocalSearchParams<{supportId:string}>();return <SupportDetailPage id={supportId??''}/>}

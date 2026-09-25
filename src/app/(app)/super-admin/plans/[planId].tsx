@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { PlanEditorPage } from '@/super-admin/pages';export default function Page(){const{planId}=useLocalSearchParams<{planId:string}>();return <PlanEditorPage id={planId??''}/>}

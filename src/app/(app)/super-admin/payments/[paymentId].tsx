@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { PaymentDetailPage } from '@/super-admin/pages';export default function Page(){const{paymentId}=useLocalSearchParams<{paymentId:string}>();return <PaymentDetailPage id={paymentId??''}/>}

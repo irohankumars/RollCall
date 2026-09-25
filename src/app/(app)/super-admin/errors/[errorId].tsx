@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { ErrorDetailPage } from '@/super-admin/operations-pages';export default function Page(){const{errorId}=useLocalSearchParams<{errorId:string}>();return <ErrorDetailPage id={errorId??''}/>}

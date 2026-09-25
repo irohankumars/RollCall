@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { CollegeDetailPage } from '@/super-admin/pages';export default function Page(){const{collegeId}=useLocalSearchParams<{collegeId:string}>();return <CollegeDetailPage id={collegeId??''}/>}

@@ -3,6 +3,8 @@ import { createAuthService } from './auth-service.mjs';
 import { createLoginRateLimiter } from './rate-limit.mjs';
 import { validateLogin } from './validation.mjs';
 import { createLecturerService } from './lecturer-service.mjs';
+import { requireRoles } from './authorization.mjs';
+import { Roles } from './roles.mjs';
 
 function bearer(req) { const value = req.headers.authorization ?? ''; return value.startsWith('Bearer ') ? value.slice(7).trim() : ''; }
 function json(res, status, body, origin) {
@@ -18,10 +20,24 @@ export function createHttpApp({ db, config }) {
       if (!originAllowed) throw new AppError(403, 'ORIGIN_NOT_ALLOWED', 'Request origin is not allowed.');
       if (req.method === 'OPTIONS') return json(res, 204, null, origin);
       if (req.method === 'GET' && req.url === '/api/health') return json(res, 200, { ok: true, data: { status: 'ok' } }, origin);
-      if (req.method === 'POST' && req.url === '/api/auth/login') { const key = `${req.socket.remoteAddress ?? 'unknown'}:${Date.now() >> 16}`; limiter.check(key); const input = validateLogin(await body(req)); const session = await auth.login(input); limiter.clear(key); return json(res, 200, { ok: true, data: session }, origin); }
+      if (req.method === 'POST' && req.url === '/api/auth/login') { const key = `${req.socket.remoteAddress ?? 'unknown'}:${Date.now() >> 16}`; limiter.check(key); const payload = await body(req); const input = validateLogin(payload); const session = await auth.login(input, payload.portal === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'STANDARD'); limiter.clear(key); return json(res, 200, { ok: true, data: session }, origin); }
       if (req.method === 'GET' && req.url === '/api/auth/me') { const session = auth.authenticate(bearer(req)); return json(res, 200, { ok: true, data: session }, origin); }
       if (req.method === 'POST' && req.url === '/api/auth/logout') { const token = bearer(req); auth.authenticate(token); auth.logout(token); return json(res, 200, { ok: true, data: { loggedOut: true } }, origin); }
       const url = new URL(req.url, 'http://localhost');
+      if (url.pathname.startsWith('/api/super-admin/')) {
+        const session = auth.authenticate(bearer(req)); requireRoles(session, [Roles.SUPER_ADMIN]);
+        if (req.method === 'GET' && url.pathname === '/api/super-admin/access') return json(res, 200, { ok: true, data: { authorized: true, role: session.user.role } }, origin);
+        const workspaceMatch = url.pathname.match(/^\/api\/super-admin\/workspaces\/([^/]+)\/status$/);
+        if (req.method === 'POST' && workspaceMatch) {
+          const input = await body(req); const state = String(input.state ?? '').toUpperCase();
+          if (!['ACTIVE', 'SUSPENDED', 'CANCELLED'].includes(state)) throw new AppError(400, 'INVALID_WORKSPACE_STATE', 'Choose Active, Suspended, or Cancelled.');
+          const requestedId = decodeURIComponent(workspaceMatch[1]); const collegeId = requestedId.startsWith('workspace-') ? requestedId.slice('workspace-'.length) : requestedId;
+          const college = db.prepare('SELECT id FROM colleges WHERE id = ?').get(collegeId);
+          if (!college) throw new AppError(404, 'WORKSPACE_NOT_FOUND', 'Workspace not found.');
+          db.prepare('UPDATE colleges SET status = ?, updated_at = ? WHERE id = ?').run(state === 'ACTIVE' ? 'ACTIVE' : 'DISABLED', new Date().toISOString(), college.id);
+          return json(res, 200, { ok: true, data: { id: requestedId, state } }, origin);
+        }
+      }
       if (url.pathname.startsWith('/api/lecturer/')) {
         const session = auth.authenticate(bearer(req));
         if (req.method === 'GET' && url.pathname === '/api/lecturer/overview') return json(res, 200, { ok: true, data: lecturer.overview(session) }, origin);

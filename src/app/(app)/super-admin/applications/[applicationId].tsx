@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router';import { ApplicationDetailPage } from '@/super-admin/pages';export default function Page(){const{applicationId}=useLocalSearchParams<{applicationId:string}>();return <ApplicationDetailPage id={applicationId??''}/>}
